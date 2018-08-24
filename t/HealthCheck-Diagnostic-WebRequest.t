@@ -50,13 +50,13 @@ $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
 );
 is_deeply( get_info_and_status( $diagnostic ), {
     info   => 'Success in requesting https://bar.com for 200 status '.
-              'code;Response content does not match /content_exists/',
+              'code; Response content does not match /content_exists/',
     status => 'CRITICAL',
 }, 'Get a failure diagnostic check on content with right data.' );
 $mock = mock_http_response( content => 'content_exists' );
 is_deeply( get_info_and_status( $diagnostic ), {
     info   => 'Success in requesting https://bar.com for 200 status '.
-              'code;Response content matches /content_exists/',
+              'code; Response content matches /content_exists/',
     status => 'OK',
 }, 'Get a success diagnostic check on content with right data.' );
 
