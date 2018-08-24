@@ -28,7 +28,7 @@ sub get_info_and_status {
 # Check that we get the right code responses.
 my $mock = mock_http_response();
 my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    external_site => 'https://foo.com',
+    url => 'https://foo.com',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
     info   => 'Success in requesting https://foo.com for 200 status code',
@@ -45,7 +45,7 @@ is_deeply( get_info_and_status( $diagnostic ), {
 # Check that we get the right content responses.
 $mock = mock_http_response( content => 'content_doesnt_exist' );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    external_site => 'https://bar.com',
+    url => 'https://bar.com',
     content_regex => 'content_exists',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
@@ -63,7 +63,7 @@ is_deeply( get_info_and_status( $diagnostic ), {
 # Check that we skip the content match on status code failures.
 $mock = mock_http_response( code => 300 );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    external_site => 'https://cyprus.co',
+    url => 'https://cyprus.co',
     content_regex => 'match_check_should_not_happen',
 );
 is_deeply( get_info_and_status( $diagnostic ), {

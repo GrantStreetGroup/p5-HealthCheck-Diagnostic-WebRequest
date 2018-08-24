@@ -16,7 +16,7 @@ sub new {
     my %params = @params == 1 && ( ref $params[0] || '' ) eq 'HASH'
         ? %{ $params[0] } : @params;
 
-    die "No external_site specified!" unless $params{external_site};
+    die "No url specified!" unless $params{url};
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -27,7 +27,7 @@ sub new {
 sub run {
     my ( $self, %params ) = @_;
 
-    my $response = LWP::UserAgent->new->get( $self->{external_site} );
+    my $response = LWP::UserAgent->new->get( $self->{url} );
 
     my @results = $self->check_status( $response );
     push @results, $self->check_content( $response )
@@ -46,7 +46,7 @@ sub check_status {
 
     my $info  = sprintf( "%s in requesting %s for %s status code",
         $status eq 'OK' ? 'Success' : 'Failure',
-        $self->{external_site},
+        $self->{url},
         $expected_code,
     );
     $info .= " (Got ".$response->code.")" unless $status eq 'OK';
@@ -75,43 +75,43 @@ __END__
 
 =head1 SYNOPSIS
 
-    my $site = 'https://www.grantsreet.com';
+    my $url = 'https://www.grantsreet.com';
 
     # Look for a 200 status code and pass.
     my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        external_site => $site,
+        url => $url,
     );
     my $result = $diagnostic->check;
     is $result->{info},
-        'Success in requesting $site for 200 status code';
+        'Success in requesting $url for 200 status code';
     is $result->{status}, 'OK';
 
     # Look for a 401 status code and fail.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        external_site => $site,
+        url => $url,
         status_code   => 401,
     );
     $result = $diagnostic->check;
     is $result->{info},
-        'Failure in requesting $site for 401 status code (Got 200)';
+        'Failure in requesting $url for 401 status code (Got 200)';
     is $result->{status}, 'CRITICAL';
 
     # Look for a 200 status code and content matching the regex.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        external_site => $site,
+        url => $url,
         content_regex => "test",
     );
     $result = $diagnostic->check;
     is $result->{info},
-        'Success in requesting $site for 200 status code;Response '.
+        'Success in requesting $url for 200 status code;Response '.
         'content matches /test/';
     is $result->{status}, 'OK';
 
 =head1 DESCRIPTION
 
-Determine is a web request to an C<external_site> is achievable. Also
-has the ability to check if the HTTP response contains the right
-content, specified by C<content_regex>. Sets the C<status> to "OK" or
+Determine is a web request to a C<url> is achievable. Also has the
+ability to check if the HTTP response contains the right content,
+specified by C<content_regex>. Sets the C<status> to "OK" or
 "CRITICAL" based on the success of the checks.
 
 =head1 ATTRIBUTES
