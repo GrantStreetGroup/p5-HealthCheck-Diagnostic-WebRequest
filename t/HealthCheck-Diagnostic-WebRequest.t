@@ -72,4 +72,11 @@ is_deeply( get_info_and_status( $diagnostic ), {
     status => 'CRITICAL',
 }, 'Do not look for content with unsuccessful status code.' );
 
+# Make sure that we do not call `check` without an instance.
+local $@;
+eval { HealthCheck::Diagnostic::WebRequest->check };
+like $@, qr/check cannot be called as a class method/,
+    'Cannot call `check` without an instance.';
+
+
 done_testing;

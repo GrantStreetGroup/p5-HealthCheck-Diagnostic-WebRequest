@@ -24,6 +24,14 @@ sub new {
     );
 }
 
+sub check {
+    my ($self, @args) = @_;
+
+    croak("check cannot be called as a class method")
+        unless ref $self;
+    return $self->SUPER::check(@args);
+}
+
 sub run {
     my ( $self, %params ) = @_;
 
