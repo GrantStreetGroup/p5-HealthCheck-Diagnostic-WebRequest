@@ -75,37 +75,33 @@ __END__
 
 =head1 SYNOPSIS
 
-    my $url = 'https://www.grantsreet.com';
+    # site:    https://foo.com
+    # content: <html><head></head><body>This is my content</body></html>
+
+    use HealthCheck::Diagnostic::WebRequest;
 
     # Look for a 200 status code and pass.
     my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => $url,
+        url => 'https://foo.com',
     );
     my $result = $diagnostic->check;
-    is $result->{info},
-        'Success in requesting $url for 200 status code';
-    is $result->{status}, 'OK';
+    print $result->{status}; # OK
 
     # Look for a 401 status code and fail.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => $url,
-        status_code   => 401,
+        url         => 'https://foo.com',
+        status_code => 401,
     );
     $result = $diagnostic->check;
-    is $result->{info},
-        'Failure in requesting $url for 401 status code (Got 200)';
-    is $result->{status}, 'CRITICAL';
+    print $result->{status}; # CRITICAL
 
     # Look for a 200 status code and content matching the regex.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => $url,
-        content_regex => "test",
+        url           => 'https://foo.com',
+        content_regex => 'is my',
     );
     $result = $diagnostic->check;
-    is $result->{info},
-        'Success in requesting $url for 200 status code;Response '.
-        'content matches /test/';
-    is $result->{status}, 'OK';
+    print $result->{status}; # OK
 
 =head1 DESCRIPTION
 
@@ -116,9 +112,28 @@ specified by C<content_regex>. Sets the C<status> to "OK" or
 
 =head1 ATTRIBUTES
 
+=head2 url
+
+The site that is checked during the HealthCheck. It can be any HTTP or
+HTTPS link.
+
+It is required.
+
+=head2 status_code
+
+The expected HTTP response status code. The default value for this is
+200, which means that we expect a successful request.
+
+=head2 content_regex
+
+The content regex to test for in the HTTP response. This is an optional
+field and is only checked if the status code check passes. This I<string>
+is treated as a regex.
+
 =head1 DEPENDENCIES
 
 L<HealthCheck::Diagnostic>
+L<LWP::UserAgent>
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
