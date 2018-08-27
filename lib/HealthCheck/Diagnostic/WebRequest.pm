@@ -103,7 +103,7 @@ __END__
     $result = $diagnostic->check;
     print $result->{status}; # CRITICAL
 
-    # Look for a 200 status code and content matching the regex.
+    # Look for a 200 status code and content matching the string regex.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
         url           => 'https://foo.com',
         content_regex => 'is my',
@@ -111,32 +111,42 @@ __END__
     $result = $diagnostic->check;
     print $result->{status}; # OK
 
+    # Use a regex as the content_regex.
+    $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url           => 'https://foo.com',
+        content_regex => qr/is my/,
+    );
+    $result = $diagnostic->check;
+    print $result->{status}; # OK
+
 =head1 DESCRIPTION
 
-Determine is a web request to a C<url> is achievable. Also has the
-ability to check if the HTTP response contains the right content,
-specified by C<content_regex>. Sets the C<status> to "OK" or
-"CRITICAL" based on the success of the checks.
+Determines if a web request to a C<url> is achievable.
+Also has the ability to check if the HTTP response contains the
+right content, specified by C<content_regex>. Sets the C<status> to "OK"
+or "CRITICAL" based on the success of the checks.
 
 =head1 ATTRIBUTES
 
 =head2 url
 
-The site that is checked during the HealthCheck. It can be any HTTP or
-HTTPS link.
+The site that is checked during the HealthCheck.
+It can be any HTTP or HTTPS link.
 
 It is required.
 
 =head2 status_code
 
-The expected HTTP response status code. The default value for this is
-200, which means that we expect a successful request.
+The expected HTTP response status code.
+The default value for this is 200,
+which means that we expect a successful request.
 
 =head2 content_regex
 
-The content regex to test for in the HTTP response. This is an optional
-field and is only checked if the status code check passes. This I<string>
-is treated as a regex.
+The content regex to test for in the HTTP response.
+This is an optional field and is only checked if the status
+code check passes.
+This can either be a I<string> or a I<regex>.
 
 =head1 DEPENDENCIES
 
