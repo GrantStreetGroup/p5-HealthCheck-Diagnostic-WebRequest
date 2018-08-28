@@ -78,21 +78,22 @@ $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
     url => 'https://disney.world',
     content_regex => qr/Disney/,
 );
-is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Success in requesting https://disney.world for 200 '.
-              'status code; Response content matches /(?^:Disney)/',
-    status => 'OK',
-}, 'Pass diagnostic with regex content_regex.' );
+my $results = $diagnostic->check;
+is $results->{status}, 'OK',
+    'Pass diagnostic with regex content_regex.';
+like $results->{info},
+    qr/Response content matches .+Disney/,
+    'Info message is correct.';
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
     url => 'http://fake.site.us',
     content_regex => qr/fail_on_this/,
 );
-is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Success in requesting http://fake.site.us for 200 '.
-              'status code; Response content does not match '.
-              '/(?^:fail_on_this)/',
-    status => 'CRITICAL',
-}, 'Fail diagnostic with regex content_regex.' );
+$results = $diagnostic->check;
+is $results->{status}, 'CRITICAL',
+    'Fail diagnostic with regex content_regex.';
+like $results->{info},
+    qr/Response content does not match .+fail_on_this/,
+    'Info message is correct.';
 
 # Make sure that we do not call `check` without an instance.
 local $@;
