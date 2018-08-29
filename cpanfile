@@ -1,5 +1,8 @@
 use GSG::Gitc::CPANfile $_environment;
 
-# Project requirements go here...
+requires 'HealthCheck::Diagnostic';
+requires 'LWP::UserAgent';
+
+test_requires 'Test::MockModule';
 
 1;
