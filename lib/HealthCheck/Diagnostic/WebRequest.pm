@@ -52,9 +52,9 @@ sub check_status {
     my $expected_code = $self->{status_code} // 200;
     my $status = $expected_code == $response->code ? 'OK' : 'CRITICAL';
 
-    my $info  = sprintf( "%s in requesting %s for %s status code",
-        $status eq 'OK' ? 'Success' : 'Failure',
+    my $info  = sprintf( "Requested %s and %s got status code %s",
         $self->{url},
+        $status eq 'OK' ? 'successfully' : 'unsuccessfully',
         $expected_code,
     );
     $info .= " (Got ".$response->code.")" unless $status eq 'OK';

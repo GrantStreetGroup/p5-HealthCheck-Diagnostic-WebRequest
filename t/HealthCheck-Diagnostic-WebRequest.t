@@ -31,14 +31,14 @@ my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
     url => 'https://foo.com',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Success in requesting https://foo.com for 200 status code',
+    info   => 'Requested https://foo.com and successfully got status code 200',
     status => 'OK',
 }, 'Pass diagnostic check on status.' );
 
 $mock = mock_http_response( code => 401 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Failure in requesting https://foo.com for 200 status '.
-              'code (Got 401)',
+    info   => 'Requested https://foo.com and unsuccessfully got status '.
+              'code 200 (Got 401)',
     status => 'CRITICAL',
 }, 'Fail diagnostic check on status.' );
 
@@ -49,14 +49,14 @@ $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
     content_regex => 'content_exists',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Success in requesting https://bar.com for 200 status '.
-              'code; Response content does not match /content_exists/',
+    info   => 'Requested https://bar.com and successfully got status '.
+              'code 200; Response content does not match /content_exists/',
     status => 'CRITICAL',
 }, 'Fail diagnostic check on content.' );
 $mock = mock_http_response( content => 'content_exists' );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Success in requesting https://bar.com for 200 status '.
-              'code; Response content matches /content_exists/',
+    info   => 'Requested https://bar.com and successfully got status '.
+              'code 200; Response content matches /content_exists/',
     status => 'OK',
 }, 'Pass diagnostic check on content.' );
 
@@ -67,8 +67,8 @@ $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
     content_regex => 'match_check_should_not_happen',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Failure in requesting https://cyprus.co for 200 status '.
-              'code (Got 300)',
+    info   => 'Requested https://cyprus.co and unsuccessfully got '.
+              'status code 200 (Got 300)',
     status => 'CRITICAL',
 }, 'Do not look for content with failed status code check.' );
 
