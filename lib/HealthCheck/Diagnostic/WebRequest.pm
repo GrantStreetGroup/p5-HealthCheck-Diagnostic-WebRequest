@@ -52,14 +52,14 @@ sub check_status {
     my $expected_code = $self->{status_code} // 200;
     my $status = $expected_code == $response->code ? 'OK' : 'CRITICAL';
 
-    my $info  = sprintf( "Requested %s and %s got status code %s",
+    my $info  = sprintf( "Requested %s and got%s status code %s",
         $self->{url},
-        $status eq 'OK' ? 'successfully' : 'unsuccessfully',
-        $expected_code,
+        $status eq 'OK' ? ' expected' : '',
+        $response->code,
     );
-    $info .= " (Got ".$response->code.")" unless $status eq 'OK';
+    $info .= ", expected $expected_code" unless $status eq 'OK';
 
-    return { status => $status, info   => $info };
+    return { status => $status, info => $info };
 }
 
 sub check_content {
