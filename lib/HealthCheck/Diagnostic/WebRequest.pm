@@ -18,6 +18,13 @@ sub new {
 
     die "No url specified!" unless $params{url};
 
+    $params{method}     //= 'GET';
+    $params{method} = uc $params{method};
+
+    die "Unrecognized method!" unless
+        ( $params{method} eq 'GET' || $params{method} eq 'POST' ||
+            $params{method} eq 'HEAD' );
+
     return $class->SUPER::new(
         label => 'web_request',
         %params,
@@ -35,7 +42,13 @@ sub check {
 sub run {
     my ( $self, %params ) = @_;
 
-    my $response = LWP::UserAgent->new->get( $self->{url} );
+    my %METHOD_LOOKUP = (
+        GET  => sub {LWP::UserAgent->new->get(@_)},
+        POST => sub {LWP::UserAgent->new->post(@_)},
+        HEAD => sub {LWP::UserAgent->new->head(@_)},
+    );
+    my $response =
+        $METHOD_LOOKUP{$self->{method}}->( $self->{url}, $self->{data} // () );
 
     my @results = $self->check_status( $response );
     push @results, $self->check_content( $response )
@@ -119,6 +132,18 @@ __END__
     $result = $diagnostic->check;
     print $result->{status}; # OK
 
+    # POST Method: Look for a 200 status code and content matching the string.
+    my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url => 'https://dev.payment-express.net/dev/env_test',
+        method => 'post',
+        status_code => 200,
+        data => { title => 'tell me something', body => 'something else' },
+        content_regex => 'tell me something',
+    );
+    my $result = $diagnostic->check;
+    print $result->{status}; # OK
+
+
 =head1 DESCRIPTION
 
 Determines if a web request to a C<url> is achievable.
@@ -147,6 +172,20 @@ The content regex to test for in the HTTP response.
 This is an optional field and is only checked if the status
 code check passes.
 This can either be a I<string> or a I<regex>.
+
+=head2 method
+
+The method to be used during the HealthCheck.
+The default is GET. POST or HEAD may be used as well.
+
+It is optional.
+
+=head2 data
+
+See HTTP::Request::Common for more information. The array or hash reference
+to be used to pass key/value pairs of form content or headers.
+
+It is optional.
 
 =head1 DEPENDENCIES
 
