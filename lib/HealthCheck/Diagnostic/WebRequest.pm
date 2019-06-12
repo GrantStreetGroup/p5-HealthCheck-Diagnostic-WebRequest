@@ -26,7 +26,7 @@ sub new {
     $params{options}     //= {};
 
     $params{options}->{agent} = LWP::UserAgent->_agent . 
-        "HealthCheck-Diagnostic-WebRequest";
+        "-HealthCheck-Diagnostic-WebRequest";
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -44,7 +44,7 @@ sub check {
 
 sub run {
     my ( $self, %params ) = @_;
-    my $ua = LWP::UserAgent->new( \$self->{options} );
+    my $ua = LWP::UserAgent->new( %{$self->{options}} );
     my $response = $ua->request( $self->{request} );
 
     my @results = $self->check_status( $response );
