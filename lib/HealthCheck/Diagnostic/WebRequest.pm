@@ -130,20 +130,28 @@ __END__
     print $result->{status}; # OK
 
     # POST Method: Look for a 200 status code and content matching the string.
-    my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => 'https://dev.payment-express.net/dev/env_test',
-        method => 'post',
+    my $data = {
+        foo => 'tell me something',
+    };
+
+    my $encoded_data = encode_utf8(encode_json($data));
+    my $header = [ 'Content-Type' => 'application/json' ]; 
+    my $url = 'https://dev.payment-express.net/dev/env_test';
+
+    my $request = HTTP::Request->new('POST', $url, $header, $encoded_data); 
+    $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        request     => $request,
         status_code => 200,
-        data => { title => 'tell me something', body => 'something else' },
-        content_regex => 'tell me something',
+        content_regex => "tell me something",
     );
-    my $result = $diagnostic->check;
+
+    $result = $diagnostic->check;
     print $result->{status}; # OK
 
 
 =head1 DESCRIPTION
 
-Determines if a web request to a C<url> is achievable.
+Determines if a web request to a C<url> or C<request> is achievable.
 Also has the ability to check if the HTTP response contains the
 right content, specified by C<content_regex>. Sets the C<status> to "OK"
 or "CRITICAL" based on the success of the checks.
@@ -170,17 +178,18 @@ This is an optional field and is only checked if the status
 code check passes.
 This can either be a I<string> or a I<regex>.
 
-=head2 method
+=head2 request
 
-The method to be used during the HealthCheck.
-The default is GET. POST or HEAD may be used as well.
+Allows passing in L<HTTP::Request> object in order to use other HTTP request
+methods and form data during the HealthCheck.
 
-It is optional.
+It is optional and if specified will take precedence over C<url>.
 
-=head2 data
+=head2 options
 
-See HTTP::Request::Common for more information. The array or hash reference
-to be used to pass key/value pairs of form content or headers.
+See L<LWP::UserAgent> for available options. Takes a hash reference of key/value
+pairs in order to configure things like ssl_opts, timeout, etc. You can not
+pass c<agent> as it will be overrided.
 
 It is optional.
 
