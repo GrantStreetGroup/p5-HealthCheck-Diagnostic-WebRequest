@@ -9,6 +9,8 @@ use warnings;
 
 use Carp;
 use LWP::UserAgent;
+use HTTP::Request;
+use Scalar::Util 'blessed';
 
 sub new {
     my ($class, @params) = @_;
@@ -16,14 +18,15 @@ sub new {
     my %params = @params == 1 && ( ref $params[0] || '' ) eq 'HASH'
         ? %{ $params[0] } : @params;
 
-    die "No url specified!" unless $params{url};
+    die "No url or HTTP::Request specified!" unless ($params{url} || 
+        ($params{request} && blessed $params{request} && 
+            $params{request}->isa('HTTP::Request')));
 
-    $params{method}     //= 'GET';
-    $params{method} = uc $params{method};
+    $params{request}     //= HTTP::Request->new('GET', $params{url});
+    $params{options}     //= {};
 
-    die "Unrecognized method!" unless
-        ( $params{method} eq 'GET' || $params{method} eq 'POST' ||
-            $params{method} eq 'HEAD' );
+    $params{options}->{agent} = LWP::UserAgent->_agent . 
+        "HealthCheck-Diagnostic-WebRequest";
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -41,14 +44,8 @@ sub check {
 
 sub run {
     my ( $self, %params ) = @_;
-
-    my %METHOD_LOOKUP = (
-        GET  => sub {LWP::UserAgent->new->get(@_)},
-        POST => sub {LWP::UserAgent->new->post(@_)},
-        HEAD => sub {LWP::UserAgent->new->head(@_)},
-    );
-    my $response =
-        $METHOD_LOOKUP{$self->{method}}->( $self->{url}, $self->{data} // () );
+    my $ua = LWP::UserAgent->new( \$self->{options} );
+    my $response = $ua->request( $self->{request} );
 
     my @results = $self->check_status( $response );
     push @results, $self->check_content( $response )
@@ -66,7 +63,7 @@ sub check_status {
     my $status = $expected_code == $response->code ? 'OK' : 'CRITICAL';
 
     my $info  = sprintf( "Requested %s and got%s status code %s",
-        $self->{url},
+        $self->{request}->uri,
         $status eq 'OK' ? ' expected' : '',
         $response->code,
     );
