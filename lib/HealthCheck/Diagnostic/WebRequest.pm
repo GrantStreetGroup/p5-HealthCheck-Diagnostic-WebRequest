@@ -18,14 +18,16 @@ sub new {
     my %params = @params == 1 && ( ref $params[0] || '' ) eq 'HASH'
         ? %{ $params[0] } : @params;
 
-    die "No url or HTTP::Request specified!" unless ($params{url} || 
-        ($params{request} && blessed $params{request} && 
+    die "No url or HTTP::Request specified!" unless ($params{url} ||
+        ($params{request} && blessed $params{request} &&
             $params{request}->isa('HTTP::Request')));
+    die "The 'request' and 'url' options are mutually exclusive!"
+        if $params{url} && $params{request};
 
     $params{request}     //= HTTP::Request->new('GET', $params{url});
     $params{options}     //= {};
 
-    $params{options}->{agent} = LWP::UserAgent->_agent . 
+    $params{options}->{agent} = LWP::UserAgent->_agent .
         "-HealthCheck-Diagnostic-WebRequest";
 
     return $class->SUPER::new(
@@ -135,10 +137,10 @@ __END__
     };
 
     my $encoded_data = encode_utf8(encode_json($data));
-    my $header = [ 'Content-Type' => 'application/json' ]; 
+    my $header = [ 'Content-Type' => 'application/json; charset=UTF-8' ];
     my $url = 'https://dev.payment-express.net/dev/env_test';
 
-    my $request = HTTP::Request->new('POST', $url, $header, $encoded_data); 
+    my $request = HTTP::Request->new('POST', $url, $header, $encoded_data);
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
         request     => $request,
         status_code => 200,
@@ -160,10 +162,18 @@ or "CRITICAL" based on the success of the checks.
 
 =head2 url
 
-The site that is checked during the HealthCheck.
-It can be any HTTP or HTTPS link.
+The site that is checked during the HealthCheck. It can be any HTTP/S link.
+By default, it will send GET requests. Use L</request> if you want a more
+complicated HTTP request.
 
-It is required.
+Either this option or L</request> are required, and are mutually exclusive.
+
+=head2 request
+
+Allows passing in L<HTTP::Request> object in order to use other HTTP request
+methods and form data during the HealthCheck.
+
+Either this option or L</url> are required, and are mutually exclusive.
 
 =head2 status_code
 
@@ -177,13 +187,6 @@ The content regex to test for in the HTTP response.
 This is an optional field and is only checked if the status
 code check passes.
 This can either be a I<string> or a I<regex>.
-
-=head2 request
-
-Allows passing in L<HTTP::Request> object in order to use other HTTP request
-methods and form data during the HealthCheck.
-
-It is optional and if specified will take precedence over C<url>.
 
 =head2 options
 
