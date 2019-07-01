@@ -24,11 +24,10 @@ sub new {
     die "The 'request' and 'url' options are mutually exclusive!"
         if $params{url} && $params{request};
 
-    $params{request}     //= HTTP::Request->new('GET', $params{url});
-    $params{options}     //= {};
-
-    $params{options}->{agent} = LWP::UserAgent->_agent .
-        "-HealthCheck-Diagnostic-WebRequest";
+    $params{request}        //= HTTP::Request->new('GET', $params{url});
+    $params{options}        //= {};
+    $params{options}{agent} //= LWP::UserAgent->_agent .
+        " HealthCheck-Diagnostic-WebRequest/$VERSION";
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -191,8 +190,7 @@ This can either be a I<string> or a I<regex>.
 =head2 options
 
 See L<LWP::UserAgent> for available options. Takes a hash reference of key/value
-pairs in order to configure things like ssl_opts, timeout, etc. You can not
-pass c<agent> as it will be overrided.
+pairs in order to configure things like ssl_opts, timeout, etc.
 
 It is optional.
 
