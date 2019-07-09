@@ -14,7 +14,7 @@ sub mock_http_response {
         _content => $params{content} // 'html_content',
     }, 'HTTP::Response' );
     my $mock = Test::MockModule->new( 'LWP::UserAgent' );
-    $mock->mock( get => $response );
+    $mock->mock( request => $response );
     return $mock;
 }
 
