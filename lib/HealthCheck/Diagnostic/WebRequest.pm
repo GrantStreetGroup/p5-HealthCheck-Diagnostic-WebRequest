@@ -66,6 +66,9 @@ sub check_status {
     my $operator = $self->{status_operator} // '==';
     my $expected_code = $self->{status_code} // 200;
 
+    my $client_warning = $response->header('Client-Warning') // '';
+    my $squid_error = $response->header('X-Squid-Error') // '';
+
     if ($operator eq '<') {
         $status = $response->code < $expected_code ? 'OK' : 'CRITICAL';
     } elsif ($operator eq '!') {
@@ -74,21 +77,24 @@ sub check_status {
         $status = $expected_code == $response->code ? 'OK' : 'CRITICAL';
     }
 
+    # If there is a squid error, we should set the status to critical
+    # even if status matches, as 401 could provide false positive to < 500.
+    $status = 'CRITICAL' if ($squid_error ne '');
+
     my $info  = sprintf( "Requested %s and got%s status code %s",
         $self->{request}->uri,
         $status eq 'OK' ? ' expected' : '',
         $response->code,
     );
 
-    my $client_warning = $response->header('Client-Warning') // '';
-    my $squid_error = $response->header('X-Squid-Error') // '';
-
-    $info .= sprintf("%s%s, expected %s%s",
+    $info .= sprintf("%s%s, expected %s%s%s",
         $client_warning eq 'Internal response' ?
           ' from internal response' : '',
         $squid_error ne '' ? ' from proxy' : '',
         $operator eq '<' ? 'value less than ' : $operator eq '!' ? 'NOT ' : '',
-        $expected_code) unless $status eq 'OK';
+        $expected_code,
+        $squid_error ne '' ? ' from postback server' : '',
+        ) unless $status eq 'OK';
 
     return { status => $status, info => $info };
 }

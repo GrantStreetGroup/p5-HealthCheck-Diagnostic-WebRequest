@@ -118,15 +118,17 @@ is $results->{status}, 'CRITICAL', 'Timeout check';
 like $results->{info}, qr/from internal response, expected 200/,
     'Internal timeout check';
 
-# Check for proxy errors
+# Check for proxy errors, even on matching status code
 $mock = mock_http_response( code => 403,
     headers => ["X-Squid-Error" => "ERR_ACCESS_DENIED 0"]);
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+    status_operator => '<',
+    status_code => 500,
     url => 'https://fake.site.us',
 );
 $results = $diagnostic->check;
 is $results->{status}, 'CRITICAL', 'Proxy status check';
-like $results->{info}, qr/and got status code 403 from proxy/,
+like $results->{info}, qr/got status code 403 from proxy, expected value less than 500 from postback server/,
     'Proxy info message';
 
 # Check < operator
