@@ -44,7 +44,7 @@ sub new {
     $params{request}        //= HTTP::Request->new('GET', $params{url});
     $params{options}        //= {};
     $params{options}{agent} //= LWP::UserAgent->_agent .
-        " HealthCheck-Diagnostic-WebRequest/$VERSION";
+        " HealthCheck-Diagnostic-WebRequest/" . ( $class->VERSION || '0' );
 
     return $class->SUPER::new(
         label => 'web_request',
