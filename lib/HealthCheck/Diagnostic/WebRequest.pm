@@ -23,9 +23,23 @@ sub new {
             $params{request}->isa('HTTP::Request')));
     die "The 'request' and 'url' options are mutually exclusive!"
         if $params{url} && $params{request};
-    die "The 'status_operator' must be '==', '<' or '!'."
-        if $params{status_operator} && !($params{status_operator} eq '==' ||
-            $params{status_operator} eq '<' || $params{status_operator} eq '!');
+
+    # Process and serialize the status code checker
+    $params{status_code} ||= '200';
+    my (@and, @or);
+    foreach my $part (split qr{\s*,\s*}, $params{status_code}) {
+        # Strict validation of each part, since we're throwing these into an eval
+        my ($op, $code) = $part =~ m{\A\s*(>=|>|<=|<|!=|!)?\s*(\d{3})\z};
+
+        die "The 'status_code' condition '$part' is not in the correct format!"
+            unless defined $code;
+        $op = '!=' if defined $op && $op eq '!';
+
+        unless ($op) { push @or,  '$_ == '.$code;    }
+        else         { push @and, '$_ '."$op $code"; }
+    }
+    push @or, '('.join(' && ', @and).')' if @and;  # merge @and as one big condition into @or
+    $params{status_code_eval} = join ' || ', @or;
 
     $params{request}        //= HTTP::Request->new('GET', $params{url});
     $params{options}        //= {};
@@ -63,38 +77,38 @@ sub run {
 sub check_status {
     my ( $self, $response ) = @_;
     my $status;
-    my $operator = $self->{status_operator} // '==';
-    my $expected_code = $self->{status_code} // 200;
 
     my $client_warning = $response->header('Client-Warning') // '';
-    my $squid_error = $response->header('X-Squid-Error') // '';
+    my $proxy_error    = $response->header('X-Squid-Error')  // '';
 
-    if ($operator eq '<') {
-        $status = $response->code < $expected_code ? 'OK' : 'CRITICAL';
-    } elsif ($operator eq '!') {
-        $status = $response->code != $expected_code ? 'OK' : 'CRITICAL';
-    } else {
-        $status = $expected_code == $response->code ? 'OK' : 'CRITICAL';
+    # Eval the status checker
+    my $success;
+    {
+        local $_ = $response->code;
+        $success = eval $self->{status_code_eval};
     }
 
-    # If there is a squid error, we should set the status to critical
-    # even if status matches, as 401 could provide false positive to < 500.
-    $status = 'CRITICAL' if ($squid_error ne '');
+    # An unfortunate post-constructor die, but this would be a validation bug (ie: our fault)
+    die "Status code checker eval '".$self->{status_code_eval}."' failed: $@" if $@;
+
+    $status = $success ? 'OK' : 'CRITICAL';
+
+    # Proxy error is an automatic failure
+    $status = 'CRITICAL' if $proxy_error;
 
     my $info  = sprintf( "Requested %s and got%s status code %s",
         $self->{request}->uri,
         $status eq 'OK' ? ' expected' : '',
         $response->code,
     );
+    $info .= " from proxy with error '$proxy_error'" if $proxy_error;
+    $info .= ", expected ".$self->{status_code}      unless $status eq 'OK' || $proxy_error;
 
-    $info .= sprintf("%s%s, expected %s%s%s",
-        $client_warning eq 'Internal response' ?
-          ' from internal response' : '',
-        $squid_error ne '' ? ' from proxy' : '',
-        $operator eq '<' ? 'value less than ' : $operator eq '!' ? 'NOT ' : '',
-        $expected_code,
-        $squid_error ne '' ? ' from postback server' : '',
-        ) unless $status eq 'OK';
+    # If LWP returned 'Internal response', the status code doesn't actually mean anything
+    if ($client_warning && $client_warning eq 'Internal response') {
+        $status = 'CRITICAL';
+        $info   = "User Agent returned: ".$response->message;
+    }
 
     return { status => $status, info => $info };
 }
@@ -142,9 +156,16 @@ __END__
 
     # Look for any status code less than 500.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url         =>      'https://foo.com',
-        status_code =>      500,
-        status_operator =>  '<',
+        url         => 'https://foo.com',
+        status_code => '<500',
+    );
+    $result = $diagnostic->check;
+    print $result->{status}; # CRITICAL
+
+    # Look for any 403, 405, or any 2xx range code
+    $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url         => 'https://foo.com',
+        status_code => '403, 405, >=200, <300',
     );
     $result = $diagnostic->check;
     print $result->{status}; # CRITICAL
@@ -211,17 +232,23 @@ Either this option or L</url> are required, and are mutually exclusive.
 
 =head2 status_code
 
-The expected HTTP response status code.
-The default value for this is 200,
-which means that we expect a successful request.
+The expected HTTP response status code, or a string of status code conditions.
 
-=head2 status_operator
+Conditions are comma-delimited, and can optionally have an operator prefix. Any
+condition without a prefix goes into an C<OR> set, while the prefixed ones go
+into an C<AND> set. As such, C<==> is not allowed as a prefix, because it's less
+confusing to not use a prefix here, and more than one condition while a C<==>
+condition exists would not make sense.
 
-The operator to evaluate the status code.
-The default for this is '==',
-which means that the response code must equal the specified status_code.
+Some examples:
 
-The following operators are available: '<', '==', '!'.
+    !500              # Anything besides 500
+    200, 202          # 200 or 202
+    200, >=300, <400  # 200 or any 3xx code
+    <400, 405, !202   # Any code below 400 except 202, or 405,
+                      # ie: (<400 && !202) || 405
+
+The default value for this is '200', which means that we expect a successful request.
 
 =head2 content_regex
 
