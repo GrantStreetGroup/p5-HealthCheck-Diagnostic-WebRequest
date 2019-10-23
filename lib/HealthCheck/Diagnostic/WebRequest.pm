@@ -24,6 +24,23 @@ sub new {
     die "The 'request' and 'url' options are mutually exclusive!"
         if $params{url} && $params{request};
 
+    # Process and serialize the status code checker
+    $params{status_code} ||= '200';
+    my (@and, @or);
+    foreach my $part (split qr{\s*,\s*}, $params{status_code}) {
+        # Strict validation of each part, since we're throwing these into an eval
+        my ($op, $code) = $part =~ m{\A\s*(>=|>|<=|<|!=|!)?\s*(\d{3})\z};
+
+        die "The 'status_code' condition '$part' is not in the correct format!"
+            unless defined $code;
+        $op = '!=' if defined $op && $op eq '!';
+
+        unless ($op) { push @or,  '$_ == '.$code;    }
+        else         { push @and, '$_ '."$op $code"; }
+    }
+    push @or, '('.join(' && ', @and).')' if @and;  # merge @and as one big condition into @or
+    $params{status_code_eval} = join ' || ', @or;
+
     $params{request}        //= HTTP::Request->new('GET', $params{url});
     $params{options}        //= {};
     $params{options}{agent} //= LWP::UserAgent->_agent .
@@ -59,16 +76,39 @@ sub run {
 
 sub check_status {
     my ( $self, $response ) = @_;
+    my $status;
 
-    my $expected_code = $self->{status_code} // 200;
-    my $status = $expected_code == $response->code ? 'OK' : 'CRITICAL';
+    my $client_warning = $response->header('Client-Warning') // '';
+    my $proxy_error    = $response->header('X-Squid-Error')  // '';
+
+    # Eval the status checker
+    my $success;
+    {
+        local $_ = $response->code;
+        $success = eval $self->{status_code_eval};
+    }
+
+    # An unfortunate post-constructor die, but this would be a validation bug (ie: our fault)
+    die "Status code checker eval '".$self->{status_code_eval}."' failed: $@" if $@;
+
+    $status = $success ? 'OK' : 'CRITICAL';
+
+    # Proxy error is an automatic failure
+    $status = 'CRITICAL' if $proxy_error;
 
     my $info  = sprintf( "Requested %s and got%s status code %s",
         $self->{request}->uri,
         $status eq 'OK' ? ' expected' : '',
         $response->code,
     );
-    $info .= ", expected $expected_code" unless $status eq 'OK';
+    $info .= " from proxy with error '$proxy_error'" if $proxy_error;
+    $info .= ", expected ".$self->{status_code}      unless $status eq 'OK' || $proxy_error;
+
+    # If LWP returned 'Internal response', the status code doesn't actually mean anything
+    if ($client_warning && $client_warning eq 'Internal response') {
+        $status = 'CRITICAL';
+        $info   = "User Agent returned: ".$response->message;
+    }
 
     return { status => $status, info => $info };
 }
@@ -110,6 +150,22 @@ __END__
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
         url         => 'https://foo.com',
         status_code => 401,
+    );
+    $result = $diagnostic->check;
+    print $result->{status}; # CRITICAL
+
+    # Look for any status code less than 500.
+    $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url         => 'https://foo.com',
+        status_code => '<500',
+    );
+    $result = $diagnostic->check;
+    print $result->{status}; # CRITICAL
+
+    # Look for any 403, 405, or any 2xx range code
+    $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url         => 'https://foo.com',
+        status_code => '403, 405, >=200, <300',
     );
     $result = $diagnostic->check;
     print $result->{status}; # CRITICAL
@@ -176,9 +232,23 @@ Either this option or L</url> are required, and are mutually exclusive.
 
 =head2 status_code
 
-The expected HTTP response status code.
-The default value for this is 200,
-which means that we expect a successful request.
+The expected HTTP response status code, or a string of status code conditions.
+
+Conditions are comma-delimited, and can optionally have an operator prefix. Any
+condition without a prefix goes into an C<OR> set, while the prefixed ones go
+into an C<AND> set. As such, C<==> is not allowed as a prefix, because it's less
+confusing to not use a prefix here, and more than one condition while a C<==>
+condition exists would not make sense.
+
+Some examples:
+
+    !500              # Anything besides 500
+    200, 202          # 200 or 202
+    200, >=300, <400  # 200 or any 3xx code
+    <400, 405, !202   # Any code below 400 except 202, or 405,
+                      # ie: (<400 && !202) || 405
+
+The default value for this is '200', which means that we expect a successful request.
 
 =head2 content_regex
 
