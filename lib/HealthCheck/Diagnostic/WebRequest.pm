@@ -18,6 +18,12 @@ sub new {
     my %params = @params == 1 && ( ref $params[0] || '' ) eq 'HASH'
         ? %{ $params[0] } : @params;
 
+    my @bad_params = grep {
+        !/^(url|request|options|content_regex|status_code_eval|status_code|no_follow_redirects)$/
+    } keys %params; 
+
+    croak("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
+
     die "No url or HTTP::Request specified!" unless ($params{url} ||
         ($params{request} && blessed $params{request} &&
             $params{request}->isa('HTTP::Request')));
@@ -63,6 +69,9 @@ sub check {
 sub run {
     my ( $self, %params ) = @_;
     my $ua = LWP::UserAgent->new( %{$self->{options}} );
+
+    $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
+
     my $response = $ua->request( $self->{request} );
 
     my @results = $self->check_status( $response );
@@ -256,6 +265,10 @@ The content regex to test for in the HTTP response.
 This is an optional field and is only checked if the status
 code check passes.
 This can either be a I<string> or a I<regex>.
+
+=head2 no_follow_redirects
+
+Setting this variable prevents the healthcheck from following redirects.
 
 =head2 options
 
