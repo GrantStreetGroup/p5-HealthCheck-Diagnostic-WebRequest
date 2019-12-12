@@ -19,10 +19,10 @@ sub new {
         ? %{ $params[0] } : @params;
 
     my @bad_params = grep {
-        !/^(url|request|options|content_regex|status_code_eval|status_code|no_follow_redirects)$/
+        !/^(tags|label|id|options|timeout|url|request|options|content_regex|status_code_eval|status_code|no_follow_redirects)$/
     } keys %params; 
 
-    croak("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
+    carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
     die "No url or HTTP::Request specified!" unless ($params{url} ||
         ($params{request} && blessed $params{request} &&
