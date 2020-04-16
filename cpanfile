@@ -1,12 +1,19 @@
-use GSG::Gitc::CPANfile $_environment;
+requires 'parent';
+requires 'strict';
+requires 'warnings';
+requires 'Carp';
 
 requires 'HealthCheck::Diagnostic';
-requires 'LWP::UserAgent';
+
 requires 'HTTP::Request';
+requires 'LWP::UserAgent';
+requires 'Scalar::Util';
 
-test_requires 'Test::MockModule';
+on test => sub {
+    requires 'Test::MockModule';
+    requires 'Test::More';
+};
 
-1;
 on develop => sub {
-    requires 'Dist::Zilla::PluginBundle::Author::GSG::Internal';
+    requires 'Dist::Zilla::PluginBundle::Author::GSG';
 };
