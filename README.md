@@ -4,7 +4,7 @@ HealthCheck::Diagnostic::WebRequest - Make HTTP/HTTPS requests to web servers to
 
 # VERSION
 
-version v1.3.1
+version v1.3.5
 
 # SYNOPSIS
 
@@ -130,6 +130,10 @@ This is an optional field and is only checked if the status
 code check passes.
 This can either be a _string_ or a _regex_.
 
+## no\_follow\_redirects
+
+Setting this variable prevents the healthcheck from following redirects.
+
 ## options
 
 See [LWP::UserAgent](https://metacpan.org/pod/LWP%3A%3AUserAgent) for available options. Takes a hash reference of key/value
@@ -152,22 +156,8 @@ Grant Street Group <developers@grantstreet.com>
 
 # COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2018 - 2019 by Grant Street Group.  No
-license is granted to other entities.
+This software is Copyright (c) 2018 - 2020 by Grant Street Group.
 
-# CONTRIBUTORS
+This is free software, licensed under:
 
-- Authors:
-- (12) Brandon Messineo <brandon.messineo@grantstreet.com>
-- (8) Randy Sofia <rsofia@grantstreet.com>
-- (4) Andrew Hewus Fresh <andrew.fresh@grantstreet.com>
-- (3) Brendan Byrd <brendan.byrd@grantstreet.com>
-- (1) Andrew Fresh <andrew.fresh@grantstreet.com>
-- Reviewers:
-- (3) Brandon Messineo <brandon.messineo@grantstreet.com> 
-- (2) Randy Sofia <rsofia@grantstreet.com> 
-- (1) Andrew Fresh <andrew.fresh@grantstreet.com> 
-- Deployers:
-- (7) Brandon Messineo <brandon.messineo@grantstreet.com>  
-- (5) Randy Sofia <rsofia@grantstreet.com>  
-- (2) Jenkins <jenkins@grantstreet.com>  
+    The Artistic License 2.0 (GPL Compatible)
