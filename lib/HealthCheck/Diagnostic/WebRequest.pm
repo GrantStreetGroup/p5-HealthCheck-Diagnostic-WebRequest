@@ -19,18 +19,17 @@ sub new {
         ? %{ $params[0] } : @params;
 
     my @bad_params = grep {
-        !/^(  tags
-            | label
+        !/^(  content_regex
             | id
+            | label
+            | no_follow_redirects
             | options
+            | request
+            | status_code
+            | status_code_eval
+            | tags
             | timeout
             | url
-            | request
-            | options
-            | content_regex
-            | status_code_eval
-            | status_code
-            | no_follow_redirects
         )$/x
     } keys %params;
 
