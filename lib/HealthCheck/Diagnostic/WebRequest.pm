@@ -63,6 +63,7 @@ sub new {
     $params{options}        //= {};
     $params{options}{agent} //= LWP::UserAgent->_agent .
         " HealthCheck-Diagnostic-WebRequest/" . ( $class->VERSION || '0' );
+    $params{options}{timeout} //= 7;    # Decided by committee
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -288,6 +289,8 @@ See L<LWP::UserAgent> for available options. Takes a hash reference of key/value
 pairs in order to configure things like ssl_opts, timeout, etc.
 
 It is optional.
+
+By default provides a custom C<agent> string and a default C<timeout> of 7.
 
 =head1 DEPENDENCIES
 

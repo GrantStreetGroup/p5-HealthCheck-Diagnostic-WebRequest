@@ -42,6 +42,7 @@ my %default_options = (
     agent => LWP::UserAgent->_agent
         . ' HealthCheck-Diagnostic-WebRequest/'
         . ( HealthCheck::Diagnostic::WebRequest->VERSION || 0 ),
+    timeout => 7,
 );
 
 is_deeply( HealthCheck::Diagnostic::WebRequest->new( url => 'x' )->{options},
@@ -57,9 +58,9 @@ is_deeply(
 is_deeply(
     HealthCheck::Diagnostic::WebRequest->new(
         url     => 'x',
-        options => { agent => 'custom', foo => 'bar' }
+        options => { agent => 'custom', foo => 'bar', timeout => 3 }
     )->{options},
-    { agent => 'custom', foo => 'bar' },
+    { agent => 'custom', foo => 'bar', timeout => 3 },
     "Added default LWP::UserAgent options"
 );
 
