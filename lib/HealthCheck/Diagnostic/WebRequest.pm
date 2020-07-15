@@ -19,8 +19,20 @@ sub new {
         ? %{ $params[0] } : @params;
 
     my @bad_params = grep {
-        !/^(tags|label|id|options|timeout|url|request|options|content_regex|status_code_eval|status_code|no_follow_redirects)$/
-    } keys %params; 
+        !/^(  tags
+            | label
+            | id
+            | options
+            | timeout
+            | url
+            | request
+            | options
+            | content_regex
+            | status_code_eval
+            | status_code
+            | no_follow_redirects
+        )$/x
+    } keys %params;
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
