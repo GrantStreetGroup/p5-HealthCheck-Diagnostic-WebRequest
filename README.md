@@ -4,7 +4,7 @@ HealthCheck::Diagnostic::WebRequest - Make HTTP/HTTPS requests to web servers to
 
 # VERSION
 
-version v1.3.5
+version v1.4.0
 
 # SYNOPSIS
 
@@ -140,6 +140,8 @@ See [LWP::UserAgent](https://metacpan.org/pod/LWP%3A%3AUserAgent) for available 
 pairs in order to configure things like ssl\_opts, timeout, etc.
 
 It is optional.
+
+By default provides a custom `agent` string and a default `timeout` of 7.
 
 # DEPENDENCIES
 
