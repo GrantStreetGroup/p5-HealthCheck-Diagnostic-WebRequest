@@ -4,7 +4,7 @@ HealthCheck::Diagnostic::WebRequest - Make HTTP/HTTPS requests to web servers to
 
 # VERSION
 
-version v1.4.0
+version v1.4.1
 
 # SYNOPSIS
 
