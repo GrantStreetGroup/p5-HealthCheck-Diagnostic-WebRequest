@@ -90,7 +90,7 @@ sub run {
     push @results, $self->check_content( $response )
         if $results[0]->{status} eq 'OK';
 
-    my $info = join '; ', map { $_->{info} } @results;
+    my $info = join '; ', grep { length } map { $_->{info} } @results;
 
     return { info => $info, results => \@results };
 }
