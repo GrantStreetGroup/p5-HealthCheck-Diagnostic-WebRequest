@@ -11,6 +11,7 @@ use Carp;
 use LWP::UserAgent;
 use HTTP::Request;
 use Scalar::Util 'blessed';
+use Time::HiRes  'gettimeofday';
 
 sub new {
     my ($class, @params) = @_;
@@ -25,6 +26,7 @@ sub new {
             | no_follow_redirects
             | options
             | request
+            | response_time_threshold
             | status_code
             | status_code_eval
             | tags
@@ -84,9 +86,19 @@ sub run {
 
     $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
 
-    my $response = $ua->request( $self->{request} );
+    my $response;
+    my $request_sub = sub { $ua->request( $self->{request} ) };
+    my @results;
+    if ($self->{response_time_threshold}) {
+        my $result;
+        ($response, $result) = $self->check_response_time($request_sub);
+        push @results, $result;
+    }
+    else {
+        $response = $request_sub->();
+    }
 
-    my @results = $self->check_status( $response );
+    push @results, $self->check_status( $response );
     push @results, $self->check_content( $response )
         if $results[0]->{status} eq 'OK';
 
@@ -150,6 +162,28 @@ sub check_content {
     };
 }
 
+sub check_response_time {
+    my ( $self, $request_sub ) = @_;
+
+    my $response_time_threshold = $self->{response_time_threshold};
+    return unless $response_time_threshold;
+
+    local $@;
+    my $ok = 1;
+
+    my $t1       = gettimeofday;
+    my $response = $request_sub->();
+    my $elapsed_time = gettimeofday - $t1;
+
+    my $status = 'OK';
+    $status = 'WARNING' if $elapsed_time > $response_time_threshold;
+
+    return ($response, {
+        status => $status,
+        info   => "Request took $elapsed_time seconds",
+    });
+}
+
 1;
 __END__
 
@@ -166,6 +200,14 @@ __END__
     );
     my $result = $diagnostic->check;
     print $result->{status}; # OK
+
+    # Look for a 200 status code and verify request takes no more than 10 seconds.
+    my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url => 'https://foo.com',
+        response_time_threshold => 10,
+    );
+    my $result = $diagnostic->check;
+    print $result->{status}; # OK if no more than 10, WARNING if more than 10
 
     # Look for a 401 status code and fail.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
@@ -270,6 +312,12 @@ Some examples:
                       # ie: (<400 && !202) || 405
 
 The default value for this is '200', which means that we expect a successful request.
+
+=head2 response_time_threshold
+
+An optional number of seconds to compare the response time to. If it takes no more
+than this threshold to receive the response, the status is C<OK>. If the time exceeds
+this threshold, the status is C<WARNING>.
 
 =head2 content_regex
 

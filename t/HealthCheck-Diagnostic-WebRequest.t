@@ -25,6 +25,8 @@ sub mock_http_response {
         $response->push_header( @{ $params{headers} } );
         $response->request($request);
 
+        sleep $params{sleep} if $params{sleep};
+
         return $response;
     });
     return $mock;
@@ -156,6 +158,26 @@ $results = $diagnostic->check;
 is $results->{status}, 'CRITICAL', 'Proxy status check';
 like $results->{info}, qr/got status code 403 from proxy with error/,
     'Proxy info message';
+
+# Check not exceeding the response_time_threshold when provided results in appropriate message
+$mock = mock_http_response;
+$diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+    url                     => 'http://fake.site.us',
+    response_time_threshold => 100,
+);
+$results = $diagnostic->check;
+is $results->{status}, 'OK', 'Got OK status when response time does not exceed response_time_threshold';
+like $results->{info}, qr/^Request took [\d.e\-]+ seconds/;
+
+# Check delayed response results in a warning status
+$mock = mock_http_response( sleep => 3 );
+$diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+    url                     => 'http://fake.site.us',
+    response_time_threshold => 2,
+);
+$results = $diagnostic->check;
+is $results->{status}, 'WARNING', 'Got WARNING status when response time exceeds response_time_threshold';
+like $results->{info}, qr/^Request took [\d.e\-]+ seconds/;
 
 # Check < operator
 $mock = mock_http_response( code => 401 );
