@@ -31,6 +31,8 @@ sub new {
             | status_code_eval
             | tags
             | timeout
+            | ua
+            | ua_action
             | url
         )$/x
     } keys %params;
@@ -42,6 +44,7 @@ sub new {
             $params{request}->isa('HTTP::Request')));
     die "The 'request' and 'url' options are mutually exclusive!"
         if $params{url} && $params{request};
+    die "The 'ua' param must be of type LWP::UserAgent if provided" if $params{ua} && !(blessed $params{ua} && $params{ua}->isa('LWP::UserAgent'));
 
     # Process and serialize the status code checker
     $params{status_code} ||= '200';
@@ -82,12 +85,12 @@ sub check {
 
 sub run {
     my ( $self, %params ) = @_;
-    my $ua = LWP::UserAgent->new( %{$self->{options}} );
+    my $ua = $self->{ua} // LWP::UserAgent->new( %{$self->{options}} );
 
     $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
 
     my $response;
-    my $request_sub = sub { $ua->request( $self->{request} ) };
+    my $request_sub = $self->{ua_action} // sub { $ua->request( $self->{request} ) };
     my @results;
     if ($self->{response_time_threshold}) {
         my $result;
@@ -329,6 +332,15 @@ This can either be a I<string> or a I<regex>.
 =head2 no_follow_redirects
 
 Setting this variable prevents the healthcheck from following redirects.
+
+=head2 ua
+
+An optional attribute to override the default user agent. This must be of type L<LWP::UserAgent>.
+
+=head2 ua_action
+
+An optional attribute to override the default coderef that sends a request via the user agent object.
+This function should return a valid HTTP response.
 
 =head2 options
 
