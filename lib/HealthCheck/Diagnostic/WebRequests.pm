@@ -30,25 +30,23 @@ sub new {
             | timeout
             | ua
             | ua_action
-            | web_request_diags
+            | web_request_diagnostics
         )$/x
     } keys %params;
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
-    die "No web_request_diags specified!" unless $params{web_request_diags};
+    die "No web_request_diagnostics specified!" unless $params{web_request_diagnostics};
 
     my %global_params = %params;
-    delete $global_params{web_request_diags};
-    use Data::Dump qw(pp);
-    warn pp %global_params;
+    delete $global_params{web_request_diagnostics};
 
-    $params{web_request_diags} = [ map {
+    $params{web_request_diagnostics} = [ map {
         blessed $_ && $_->isa('HealthCheck::Diagnostic::WebRequest') ? $_ : HealthCheck::Diagnostic::WebRequest->new(
             %global_params,
             %$_,
         );
-    } @{ $params{web_request_diags} } ];
+    } @{ $params{web_request_diagnostics} } ];
 
     return $class->SUPER::new(
         label => 'web_requests',
@@ -66,7 +64,7 @@ sub check {
 
 sub run {
     my ( $self, %params ) = @_;
-    return ( results => [ map { $_->check } @{ $self->{web_request_diags} } ] );
+    return ( results => [ map { $_->check } @{ $self->{web_request_diagnostics} } ] );
 }
 
 1;
@@ -79,7 +77,7 @@ __END__
     use HealthCheck::Diagnostic::WebRequests;
 
     my $diagnostic = HealthCheck::Diagnostic::WebRequests->new(
-        web_request_diags => [
+        web_request_diagnostics => [
             {
                 id    => 'foo',
                 tags  => ['foo'],
@@ -100,12 +98,12 @@ __END__
 A wrapper around L<HealthCheck::Diagnostic::WebRequest> that groups multiple
 requests into a single healthcheck. This class will effectively create a
 L<HealthCheck::Diagnostic::WebRequest> instance for each provided URL in
-C<web_request_diags> and call its C<check> method. L<HealthCheck::Diagnostic::WebRequest>
-objects can also be directly passed in the C<web_request_diags> arrayref.
+C<web_request_diagnostics> and call its C<check> method. L<HealthCheck::Diagnostic::WebRequest>
+objects can also be directly passed in the C<web_request_diagnostics> arrayref.
 
 =head1 ATTRIBUTES
 
-=head2 web_request_diags
+=head2 web_request_diagnostics
 
 An arrayref of hashrefs, where each hashref should contain valid arguments to instantiate a
 L<HealthCheck::Diagnostic::WebRequest> object. Alternatively,

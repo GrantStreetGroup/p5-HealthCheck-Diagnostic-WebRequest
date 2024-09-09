@@ -33,11 +33,11 @@ sub mock_http_response {
     return $mock;
 }
 
-# Check we get expected responses when web_request_diags contains both a hashref and a HealthCheck::Diagnostic::WebRequest object
+# Check we get expected responses when web_request_diagnostics contains both a hashref and a HealthCheck::Diagnostic::WebRequest object
 {
     my $mock = mock_http_response();
     my $diagnostic = HealthCheck::Diagnostic::WebRequests->new(
-        web_request_diags => [
+        web_request_diagnostics => [
             {
                 url  => 'http://foo.com',
                 tags => ['foo'],
