@@ -89,19 +89,13 @@ sub run {
 
     $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
 
-    my $response;
     my $request_sub = $self->{ua_action} // sub { $ua->request( $self->{request} ) };
+
     my @results;
-    if ($self->{response_time_threshold}) {
-        my $result;
-        ($response, $result) = $self->check_response_time($request_sub);
-        push @results, $result;
-    }
-    else {
-        $response = $request_sub->();
-    }
+    my ($response, $result) = $self->check_response_time($request_sub);
 
     push @results, $self->check_status( $response );
+    push @results, $result;
     push @results, $self->check_content( $response )
         if $results[0]->{status} eq 'OK';
 
@@ -169,7 +163,6 @@ sub check_response_time {
     my ( $self, $request_sub ) = @_;
 
     my $response_time_threshold = $self->{response_time_threshold};
-    return unless $response_time_threshold;
 
     local $@;
     my $ok = 1;
@@ -179,7 +172,7 @@ sub check_response_time {
     my $elapsed_time = gettimeofday - $t1;
 
     my $status = 'OK';
-    $status = 'WARNING' if $elapsed_time > $response_time_threshold;
+    $status = 'WARNING' if $response_time_threshold && $elapsed_time > $response_time_threshold;
 
     return ($response, {
         status => $status,
@@ -319,8 +312,8 @@ The default value for this is '200', which means that we expect a successful req
 =head2 response_time_threshold
 
 An optional number of seconds to compare the response time to. If it takes no more
-than this threshold to receive the response, the status is C<OK>. If the time exceeds
-this threshold, the status is C<WARNING>.
+than this threshold to receive the response or if the threshold is not provided,
+the status is C<OK>. If the time exceeds this threshold, the status is C<WARNING>.
 
 =head2 content_regex
 

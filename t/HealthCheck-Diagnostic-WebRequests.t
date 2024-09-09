@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More;
 use Test::MockModule;
+use Test::Mock::Time;
 use HealthCheck::Diagnostic::WebRequest;
 use HealthCheck::Diagnostic::WebRequests;
 
@@ -59,7 +60,7 @@ sub mock_http_response {
     for my $result (@{ $results->{results} }) {
         my $url = shift @expected_urls;
         my $tag = shift @expected_tags;
-        is $result->{info}, "Requested $url and got expected status code 200",
+        is $result->{info}, "Requested $url and got expected status code 200; Request took 0 seconds",
             "Got expected info for $url";
         is $result->{status}, 'OK',
             "Got expected status for $url";
