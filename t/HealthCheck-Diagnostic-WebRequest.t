@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More;
 use Test::MockModule;
+use Test::Mock::Time;
 use HealthCheck::Diagnostic::WebRequest;
 
 # Mock the HTTP response so that we don't actually end up making any
