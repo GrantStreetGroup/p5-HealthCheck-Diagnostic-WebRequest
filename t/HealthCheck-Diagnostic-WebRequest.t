@@ -167,7 +167,17 @@ $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
 );
 $results = $diagnostic->check;
 is $results->{status}, 'OK', 'Got OK status when response time does not exceed response_time_threshold';
-like $results->{info}, qr/Request took [\d.e\-]+ seconds/;
+like $results->{info}, qr/Request took [\d.e\-]+ seconds?/;
+
+# Check the 0 reponse_time_threshold case
+$mock = mock_http_response( sleep => 1 );
+$diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+    url                     => 'http://fake.site.test',
+    response_time_threshold => 0,
+);
+$results = $diagnostic->check;
+is $results->{status}, 'WARNING', 'Got WARNING status when response time exceeds response_time_threshold';
+like $results->{info}, qr/Request took [\d.e\-]+ seconds?/;
 
 # Check delayed response results in a warning status
 $mock = mock_http_response( sleep => 3 );
@@ -177,7 +187,7 @@ $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
 );
 $results = $diagnostic->check;
 is $results->{status}, 'WARNING', 'Got WARNING status when response time exceeds response_time_threshold';
-like $results->{info}, qr/Request took [\d.e\-]+ seconds/;
+like $results->{info}, qr/Request took [\d.e\-]+ seconds?/;
 
 # Check < operator
 $mock = mock_http_response( code => 401 );

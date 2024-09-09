@@ -172,7 +172,7 @@ sub check_response_time {
     my $elapsed_time = gettimeofday - $t1;
 
     my $status = 'OK';
-    $status = 'WARNING' if $response_time_threshold && $elapsed_time > $response_time_threshold;
+    $status = 'WARNING' if defined $response_time_threshold && $elapsed_time > $response_time_threshold;
 
     return ($response, {
         status => $status,
