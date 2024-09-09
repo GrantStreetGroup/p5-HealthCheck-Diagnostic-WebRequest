@@ -128,7 +128,7 @@ like $results->{info},
 # Check content failure for appropriate message
 $mock = mock_http_response( content => 'This is Disney World\'s site' );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     content_regex => qr/fail_on_this/,
 );
 $results = $diagnostic->check;
@@ -139,9 +139,9 @@ like $results->{info},
     'Info message is correct.';
 
 # Check timeout failure for appropriate message
-$mock = mock_http_response( die => "Can't connect to fake.site.us" );
+$mock = mock_http_response( die => "Can't connect to fake.site.test" );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
 );
 $results = $diagnostic->check;
 is $results->{status}, 'CRITICAL', 'Timeout check';
@@ -151,7 +151,7 @@ like $results->{info}, qr/Can't connect to/, 'Internal timeout check';
 $mock = mock_http_response( code => 403,
     headers => ["X-Squid-Error" => "ERR_ACCESS_DENIED 0"]);
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     status_code => '<500',
 );
 $results = $diagnostic->check;
@@ -162,7 +162,7 @@ like $results->{info}, qr/got status code 403 from proxy with error/,
 # Check not exceeding the response_time_threshold when provided results in appropriate message
 $mock = mock_http_response;
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url                     => 'http://fake.site.us',
+    url                     => 'http://fake.site.test',
     response_time_threshold => 100,
 );
 $results = $diagnostic->check;
@@ -172,7 +172,7 @@ like $results->{info}, qr/^Request took [\d.e\-]+ seconds/;
 # Check delayed response results in a warning status
 $mock = mock_http_response( sleep => 3 );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url                     => 'http://fake.site.us',
+    url                     => 'http://fake.site.test',
     response_time_threshold => 2,
 );
 $results = $diagnostic->check;
@@ -182,7 +182,7 @@ like $results->{info}, qr/^Request took [\d.e\-]+ seconds/;
 # Check < operator
 $mock = mock_http_response( code => 401 );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     status_code => '<500',
 );
 $results = $diagnostic->check;
@@ -191,9 +191,9 @@ like $results->{info}, qr/and got expected status code 401/,
     'Valid less than message';
 
 # Failed < operator with timeout
-$mock = mock_http_response( die => "Can't connect to fake.site.us" );
+$mock = mock_http_response( die => "Can't connect to fake.site.test" );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     status_code => '<500',
 );
 $results = $diagnostic->check;
@@ -204,7 +204,7 @@ like $results->{info}, qr/User Agent returned: Can't connect to/,
 # Check valid ! operator
 $mock = mock_http_response( code => 401 );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     status_code => '!500'
 );
 
@@ -216,7 +216,7 @@ like $results->{info}, qr/and got expected status code 401/,
 # Check failed ! operator
 $mock = mock_http_response( code => 500 );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     status_code => '!500',
 );
 
@@ -227,7 +227,7 @@ like $results->{info}, qr/got status code 500, expected !500/,
 
 # Complex status code string
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://fake.site.us',
+    url => 'http://fake.site.test',
     status_code => '<400, 405, !202',
 );
 
@@ -270,13 +270,13 @@ is $results->{status}, 'OK', 'Complex check: 302 is GOOD';
     $response->protocol("HTTP/1.1");
 
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => 'http://fake.site.us',
+        url => 'http://fake.site.test',
         ua_action => sub { $response },
         content_regex => 'overridden user agent'
     );
     $results = $diagnostic->check;
     is_deeply( get_info_and_status( $diagnostic ), {
-        info   => 'Requested http://fake.site.us and got expected status code 200'
+        info   => 'Requested http://fake.site.test and got expected status code 200'
                 . '; Response content matches /overridden user agent/',
         status => 'OK',
     }, 'Got expected response from overridden user agent action' );
