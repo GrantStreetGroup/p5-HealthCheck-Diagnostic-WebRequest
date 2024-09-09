@@ -183,7 +183,7 @@ sub check_response_time {
 
     return ($response, {
         status => $status,
-        info   => "Request took $elapsed_time seconds",
+        info   => "Request took $elapsed_time second" . ( $elapsed_time == 1 ? '' : 's' ),
     });
 }
 
