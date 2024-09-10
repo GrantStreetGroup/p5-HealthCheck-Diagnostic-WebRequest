@@ -39,12 +39,20 @@ sub new {
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
-    die "No url or HTTP::Request specified!" unless ($params{url} ||
-        ($params{request} && blessed $params{request} &&
-            $params{request}->isa('HTTP::Request')));
-    die "The 'request' and 'url' options are mutually exclusive!"
-        if $params{url} && $params{request};
-    die "The 'ua' param must be of type LWP::UserAgent if provided" if $params{ua} && !(blessed $params{ua} && $params{ua}->isa('LWP::UserAgent'));
+    if (ref $params{ua_action}) {
+        if (my @extra_keys = grep { /^(url|request|ua)$/ } keys %params) {
+            die sprintf("The 'ua_action' parameter cannot be used with the following parameters: %s", join(',', @extra_keys));
+        }
+        die "The 'ua_action' parameter must be a coderef" if ref $params{ua_action} ne 'CODE';
+    }
+    else {
+        die "No url, HTTP::Request specified!" unless ($params{url} ||
+            ($params{request} && blessed $params{request} &&
+                $params{request}->isa('HTTP::Request')));
+        die "The 'request' and 'url' parameters are mutually exclusive!"
+            if $params{url} && $params{request};
+        die "The 'ua' parameter must be of type LWP::UserAgent if provided" if $params{ua} && !(blessed $params{ua} && $params{ua}->isa('LWP::UserAgent'));
+    }
 
     # Process and serialize the status code checker
     $params{status_code} ||= '200';
