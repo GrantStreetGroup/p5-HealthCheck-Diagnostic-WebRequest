@@ -272,27 +272,6 @@ $mock = mock_http_response(
 $results = $diagnostic->check;
 is $results->{status}, 'OK', 'Complex check: 302 is GOOD';
 
-# Check overriding the user agent action provides the expected response
-{
-    $mock = mock_http_response;
-    my $response = HTTP::Response->new(200);
-    $response->{_content} = 'overridden user agent';
-    $response->protocol("HTTP/1.1");
-
-    $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => 'http://fake.site.test',
-        ua_action => sub { $response },
-        content_regex => 'overridden user agent'
-    );
-    $results = $diagnostic->check;
-    is_deeply( get_info_and_status( $diagnostic ), {
-        info   => 'Requested http://fake.site.test and got expected status code 200'
-                . '; Request took 0 seconds'
-                . '; Response content matches /overridden user agent/',
-        status => 'OK',
-    }, 'Got expected response from overridden user agent action' );
-}
-
 # Make sure that we do not call `check` without an instance.
 local $@;
 eval { HealthCheck::Diagnostic::WebRequest->check };

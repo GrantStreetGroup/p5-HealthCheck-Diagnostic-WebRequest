@@ -32,27 +32,18 @@ sub new {
             | tags
             | timeout
             | ua
-            | ua_action
             | url
         )$/x
     } keys %params;
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
-    if (ref $params{ua_action}) {
-        if (my @extra_keys = grep { /^(url|request|ua)$/ } keys %params) {
-            die sprintf("The 'ua_action' parameter cannot be used with the following parameters: %s", join(',', @extra_keys));
-        }
-        die "The 'ua_action' parameter must be a coderef" if ref $params{ua_action} ne 'CODE';
-    }
-    else {
-        die "No url, HTTP::Request specified!" unless ($params{url} ||
-            ($params{request} && blessed $params{request} &&
-                $params{request}->isa('HTTP::Request')));
-        die "The 'request' and 'url' parameters are mutually exclusive!"
-            if $params{url} && $params{request};
-        die "The 'ua' parameter must be of type LWP::UserAgent if provided" if $params{ua} && !(blessed $params{ua} && $params{ua}->isa('LWP::UserAgent'));
-    }
+    die "No url, HTTP::Request specified!" unless ($params{url} ||
+        ($params{request} && blessed $params{request} &&
+            $params{request}->isa('HTTP::Request')));
+    die "The 'request' and 'url' parameters are mutually exclusive!"
+        if $params{url} && $params{request};
+    die "The 'ua' parameter must be of type LWP::UserAgent if provided" if $params{ua} && !(blessed $params{ua} && $params{ua}->isa('LWP::UserAgent'));
 
     # Process and serialize the status code checker
     $params{status_code} ||= '200';
@@ -76,6 +67,7 @@ sub new {
     $params{options}{agent} //= LWP::UserAgent->_agent .
         " HealthCheck-Diagnostic-WebRequest/" . ( $class->VERSION || '0' );
     $params{options}{timeout} //= 7;    # Decided by committee
+    $params{ua} //= LWP::UserAgent->new( %{$params{options}} );
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -93,17 +85,17 @@ sub check {
 
 sub run {
     my ( $self, %params ) = @_;
-    my $ua = $self->{ua} // LWP::UserAgent->new( %{$self->{options}} );
 
-    $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
-
-    my $request_sub = $self->{ua_action} // sub { $ua->request( $self->{request} ) };
+    my ($response, $elapsed_time);
+    {
+        my $t1        = gettimeofday;
+        $response     = $self->send_request;
+        $elapsed_time = gettimeofday - $t1;
+    }
 
     my @results;
-    my ($response, $result) = $self->check_response_time($request_sub);
-
     push @results, $self->check_status( $response );
-    push @results, $result;
+    push @results, $self->check_response_time( $elapsed_time );
     push @results, $self->check_content( $response )
         if $results[0]->{status} eq 'OK';
 
@@ -168,24 +160,25 @@ sub check_content {
 }
 
 sub check_response_time {
-    my ( $self, $request_sub ) = @_;
+    my ( $self, $elapsed_time ) = @_;
 
     my $response_time_threshold = $self->{response_time_threshold};
-
-    local $@;
-    my $ok = 1;
-
-    my $t1       = gettimeofday;
-    my $response = $request_sub->();
-    my $elapsed_time = gettimeofday - $t1;
-
     my $status = 'OK';
     $status = 'WARNING' if defined $response_time_threshold && $elapsed_time > $response_time_threshold;
 
-    return ($response, {
+    return {
         status => $status,
         info   => "Request took $elapsed_time second" . ( $elapsed_time == 1 ? '' : 's' ),
-    });
+    };
+}
+
+sub send_request {
+    my ( $self ) = @_;
+
+    my $ua = $self->{ua};
+    $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
+
+    return $ua->request( $self->{request} );
 }
 
 1;
@@ -338,11 +331,6 @@ Setting this variable prevents the healthcheck from following redirects.
 
 An optional attribute to override the default user agent. This must be of type L<LWP::UserAgent>.
 
-=head2 ua_action
-
-An optional attribute to override the default coderef that sends a request via the user agent object.
-This function should return a valid HTTP response.
-
 =head2 options
 
 See L<LWP::UserAgent> for available options. Takes a hash reference of key/value
@@ -351,6 +339,16 @@ pairs in order to configure things like ssl_opts, timeout, etc.
 It is optional.
 
 By default provides a custom C<agent> string and a default C<timeout> of 7.
+
+=head1 METHODS
+
+=head2 send_request
+
+    my $response = $self->send_request;
+
+This is the method called internally to receive a response for the healthcheck. Defaults to calling
+the C<request> method on the user agent and provided C<request> attribute, but this can be overridden in
+a subclass.
 
 =head1 DEPENDENCIES
 
