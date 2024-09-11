@@ -5,7 +5,7 @@ use Test::More;
 use Test::MockModule;
 use Test::Mock::Time;
 use HealthCheck::Diagnostic::WebRequest;
-use HealthCheck::Diagnostic::WebRequests;
+use HealthCheck::WebRequests;
 
 # Mock the HTTP response so that we don't actually end up making any
 # HTTP requests while running tests.
@@ -34,11 +34,11 @@ sub mock_http_response {
     return $mock;
 }
 
-# Check we get expected responses when web_request_diagnostics contains both a hashref and a HealthCheck::Diagnostic::WebRequest object
+# Check we get expected responses when checks contains both a hashref and a HealthCheck::Diagnostic::WebRequest object
 {
     my $mock = mock_http_response();
-    my $diagnostic = HealthCheck::Diagnostic::WebRequests->new(
-        web_request_diagnostics => [
+    my $diagnostic = HealthCheck::WebRequests->new(
+        checks => [
             {
                 url  => 'http://foo.com',
                 tags => ['foo'],

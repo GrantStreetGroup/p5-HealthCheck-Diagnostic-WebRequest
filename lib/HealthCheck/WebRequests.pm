@@ -1,5 +1,5 @@
-package HealthCheck::Diagnostic::WebRequests;
-use parent 'HealthCheck::Diagnostic';
+package HealthCheck::WebRequests;
+use parent 'HealthCheck';
 
 # ABSTRACT: Make HTTP/HTTPS requests to web servers to check connectivity
 # VERSION
@@ -18,7 +18,8 @@ sub new {
         ? %{ $params[0] } : @params;
 
     my @bad_params = grep {
-        !/^(  content_regex
+        !/^(  checks
+            | content_regex
             | id
             | label
             | no_follow_redirects
@@ -26,45 +27,31 @@ sub new {
             | response_time_threshold
             | status_code
             | status_code_eval
+            | runbook
             | tags
             | timeout
             | ua
-            | ua_action
-            | web_request_diagnostics
         )$/x
     } keys %params;
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
-    die "No web_request_diagnostics specified!" unless $params{web_request_diagnostics};
+    die "No checks specified!" unless $params{checks};
 
     my %global_params = %params;
-    delete $global_params{web_request_diagnostics};
-
-    $params{web_request_diagnostics} = [ map {
-        blessed $_ && $_->isa('HealthCheck::Diagnostic::WebRequest') ? $_ : HealthCheck::Diagnostic::WebRequest->new(
+    delete $global_params{checks};
+    for my $check (@{ $params{checks} }) {
+        $check = HealthCheck::Diagnostic::WebRequest->new(
             %global_params,
-            %$_,
-        );
-    } @{ $params{web_request_diagnostics} } ];
+            %$check,
+        ) if ref $check eq 'HASH';
+        die "Each check must be either a hashref or HealthCheck::Diagnostic::WebRequest" unless $check->isa('HealthCheck::Diagnostic::WebRequest');
+    }
 
     return $class->SUPER::new(
         label => 'web_requests',
         %params,
     );
-}
-
-sub check {
-    my ($self, @args) = @_;
-
-    croak("check cannot be called as a class method")
-        unless ref $self;
-    return $self->SUPER::check(@args);
-}
-
-sub run {
-    my ( $self, %params ) = @_;
-    return ( results => [ map { $_->check } @{ $self->{web_request_diagnostics} } ] );
 }
 
 1;
@@ -74,20 +61,20 @@ __END__
 
     # sites:    https://foo.com, https://bar.com
 
-    use HealthCheck::Diagnostic::WebRequests;
+    use HealthCheck::WebRequests;
 
-    my $diagnostic = HealthCheck::Diagnostic::WebRequests->new(
-        web_request_diagnostics => [
+    my $healthcheck = HealthCheck::WebRequests->new(
+        checks => [
             {
                 id    => 'foo',
                 tags  => ['foo'],
                 label => 'foo',
                 url   => 'https://foo.com',
                 # Any other valid args for HealthCheck::Diagnostic::WebRequest
-            }
+            },
+            HealthCheck::Diagnostic::WebRequest->new(...),
         ],
         # These args apply to all newly created HealthCheck::Diagnostic::WebRequest instances unless overridden
-        ua_action => sub { ... },
         tags      => ['default_tag'],
         label     => 'default_label',
     );
@@ -95,15 +82,14 @@ __END__
 
 =head1 DESCRIPTION
 
-A wrapper around L<HealthCheck::Diagnostic::WebRequest> that groups multiple
-requests into a single healthcheck. This class will effectively create a
-L<HealthCheck::Diagnostic::WebRequest> instance for each provided URL in
-C<web_request_diagnostics> and call its C<check> method. L<HealthCheck::Diagnostic::WebRequest>
-objects can also be directly passed in the C<web_request_diagnostics> arrayref.
+A L<HealthCheck> that groups multiple L<HealthCheck::Diagnostic::WebRequest> into a single healthcheck.
+C<checks> can be an array of hashrefs or L<HealthCheck::Diagnostic::WebRequest> (or a mix of the two).
+If C<checks> is a hashref, this class will create a L<HealthCheck::Diagnostic::WebRequest> instance for each provided URL in
+C<checks>.
 
 =head1 ATTRIBUTES
 
-=head2 web_request_diagnostics
+=head2 checks
 
 An arrayref of hashrefs, where each hashref should contain valid arguments to instantiate a
 L<HealthCheck::Diagnostic::WebRequest> object. Alternatively,
@@ -150,11 +136,6 @@ Setting this variable prevents the healthcheck from following redirects.
 
 An optional attribute to override the default user agent. This must be of type L<LWP::UserAgent>.
 
-=head2 ua_action
-
-An optional attribute to override the default coderef that sends a request via the user agent object.
-This function should return a valid HTTP response.
-
 =head2 options
 
 See L<LWP::UserAgent> for available options. Takes a hash reference of key/value
@@ -166,7 +147,7 @@ By default provides a custom C<agent> string and a default C<timeout> of 7.
 
 =head1 DEPENDENCIES
 
-L<HealthCheck::Diagnostic>
+L<HealthCheck>
 L<HealthCheck::Diagnostic::WebRequest>
 L<LWP::UserAgent>
 
