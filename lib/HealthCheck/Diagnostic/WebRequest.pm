@@ -196,21 +196,21 @@ __END__
 
 =head1 SYNOPSIS
 
-    # site:    https://foo.com
+    # site:    https://foo.example
     # content: <html><head></head><body>This is my content</body></html>
 
     use HealthCheck::Diagnostic::WebRequest;
 
     # Look for a 200 status code and pass.
     my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => 'https://foo.com',
+        url => 'https://foo.example',
     );
     my $result = $diagnostic->check;
     print $result->{status}; # OK
 
     # Look for a 200 status code and verify request takes no more than 10 seconds.
     my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url => 'https://foo.com',
+        url => 'https://foo.example',
         response_time_threshold => 10,
     );
     my $result = $diagnostic->check;
@@ -218,7 +218,7 @@ __END__
 
     # Look for a 401 status code and fail.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url         => 'https://foo.com',
+        url         => 'https://foo.example',
         status_code => 401,
     );
     $result = $diagnostic->check;
@@ -226,7 +226,7 @@ __END__
 
     # Look for any status code less than 500.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url         => 'https://foo.com',
+        url         => 'https://foo.example',
         status_code => '<500',
     );
     $result = $diagnostic->check;
@@ -234,7 +234,7 @@ __END__
 
     # Look for any 403, 405, or any 2xx range code
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url         => 'https://foo.com',
+        url         => 'https://foo.example',
         status_code => '403, 405, >=200, <300',
     );
     $result = $diagnostic->check;
@@ -242,7 +242,7 @@ __END__
 
     # Look for a 200 status code and content matching the string regex.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url           => 'https://foo.com',
+        url           => 'https://foo.example',
         content_regex => 'is my',
     );
     $result = $diagnostic->check;
@@ -250,7 +250,7 @@ __END__
 
     # Use a regex as the content_regex.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-        url           => 'https://foo.com',
+        url           => 'https://foo.example',
         content_regex => qr/is my/,
     );
     $result = $diagnostic->check;

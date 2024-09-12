@@ -40,10 +40,10 @@ sub mock_http_response {
     my $diagnostic = HealthCheck::WebRequests->new(
         checks => [
             {
-                url  => 'http://foo.com',
+                url  => 'http://foo.example',
                 tags => ['foo'],
             },
-            HealthCheck::Diagnostic::WebRequest->new(url => 'http://bar.com',),
+            HealthCheck::Diagnostic::WebRequest->new(url => 'http://bar.example',),
             {
                 url  => 'http://baz.com',
             },
@@ -55,7 +55,7 @@ sub mock_http_response {
         'Got expected status for overall healthcheck';
     is $results->{tags}[0], 'default',
         'Got expected tag for overall healthcheck';
-    my @expected_urls = ('http://foo.com', 'http://bar.com', 'http://baz.com');
+    my @expected_urls = ('http://foo.example', 'http://bar.example', 'http://baz.com');
     my @expected_tags = ('foo', undef, 'default');
     for my $result (@{ $results->{results} }) {
         my $url = shift @expected_urls;

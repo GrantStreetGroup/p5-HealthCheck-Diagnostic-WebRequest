@@ -70,33 +70,33 @@ is_deeply(
 # Check that we get the right code responses.
 my $mock = mock_http_response();
 my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://foo.com',
+    url => 'http://foo.example',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Requested http://foo.com and got expected status code 200; Request took 0 seconds',
+    info   => 'Requested http://foo.example and got expected status code 200; Request took 0 seconds',
     status => 'OK',
 }, 'Pass diagnostic check on status.' );
 
 $mock = mock_http_response( code => 401 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Requested http://foo.com and got status code 401, expected 200; Request took 0 seconds',
+    info   => 'Requested http://foo.example and got status code 401, expected 200; Request took 0 seconds',
     status => 'CRITICAL',
 }, 'Fail diagnostic check on status.' );
 
 # Check that we get the right content responses.
 $mock = mock_http_response( content => 'content_doesnt_exist' );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://bar.com',
+    url => 'http://bar.example',
     content_regex => 'content_exists',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Requested http://bar.com and got expected status code 200; Request took 0 seconds'
+    info   => 'Requested http://bar.example and got expected status code 200; Request took 0 seconds'
             . '; Response content does not match /content_exists/',
     status => 'CRITICAL',
 }, 'Fail diagnostic check on content.' );
 $mock = mock_http_response( content => 'content_exists' );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Requested http://bar.com and got expected status code 200; Request took 0 seconds'
+    info   => 'Requested http://bar.example and got expected status code 200; Request took 0 seconds'
             . '; Response content matches /content_exists/',
     status => 'OK',
 }, 'Pass diagnostic check on content.' );
@@ -104,11 +104,11 @@ is_deeply( get_info_and_status( $diagnostic ), {
 # Check that we skip the content match on status code failures.
 $mock = mock_http_response( code => 300 );
 $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
-    url => 'http://cyprus.co',
+    url => 'http://baz.example',
     content_regex => 'match_check_should_not_happen',
 );
 is_deeply( get_info_and_status( $diagnostic ), {
-    info   => 'Requested http://cyprus.co and got status code 300, expected 200; Request took 0 seconds',
+    info   => 'Requested http://baz.example and got status code 300, expected 200; Request took 0 seconds',
     status => 'CRITICAL',
 }, 'Do not look for content with failed status code check.' );
 

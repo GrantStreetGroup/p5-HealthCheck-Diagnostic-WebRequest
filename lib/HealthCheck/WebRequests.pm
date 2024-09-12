@@ -59,8 +59,6 @@ __END__
 
 =head1 SYNOPSIS
 
-    # sites:    https://foo.com, https://bar.com
-
     use HealthCheck::WebRequests;
 
     my $healthcheck = HealthCheck::WebRequests->new(
@@ -69,23 +67,42 @@ __END__
                 id    => 'foo',
                 tags  => ['foo'],
                 label => 'foo',
-                url   => 'https://foo.com',
+                url   => 'https://foo.example',
                 # Any other valid args for HealthCheck::Diagnostic::WebRequest
             },
-            HealthCheck::Diagnostic::WebRequest->new(...),
+            HealthCheck::Diagnostic::WebRequest->new(...), # the top-level shared args do not apply to HealthCheck::Diagnostic::WebRequest instances
         ],
-        # These args apply to all newly created HealthCheck::Diagnostic::WebRequest instances unless overridden
+        # These args apply to all hashrefs in checks
         tags      => ['default_tag'],
         label     => 'default_label',
+    );
+
+    my $healthcheck2 = HealthCheck::WebRequests->new(
+        checks => [
+            {
+                url   => 'https://foo.example',
+                # tags        = ['default_tag']
+                # label       = 'default_label'
+                # status_code = '200'
+            },
+            {
+                url   => 'https://bar.example',
+                # tags        = ['default_tag']
+                # label       = 'default_label'
+                # status_code = '200'
+            },
+            HealthCheck::Diagnostic::WebRequest->new(...), # the top-level shared args do not apply to HealthCheck::Diagnostic::WebRequest instances
+        ],
+        # These args apply to all hashrefs in checks
+        tags        => ['default_tag'],
+        label       => 'default_label',
+        status_code => '200',
     );
 
 
 =head1 DESCRIPTION
 
-A L<HealthCheck> that groups multiple L<HealthCheck::Diagnostic::WebRequest> into a single healthcheck.
-C<checks> can be an array of hashrefs or L<HealthCheck::Diagnostic::WebRequest> (or a mix of the two).
-If C<checks> is a hashref, this class will create a L<HealthCheck::Diagnostic::WebRequest> instance for each provided URL in
-C<checks>.
+A L<HealthCheck> that groups multiple L<HealthCheck::Diagnostic::WebRequest>.
 
 =head1 ATTRIBUTES
 
@@ -93,57 +110,30 @@ C<checks>.
 
 An arrayref of hashrefs, where each hashref should contain valid arguments to instantiate a
 L<HealthCheck::Diagnostic::WebRequest> object. Alternatively,
-L<L<HealthCheck::Diagnostic::WebRequest>> objects can be directly provided instead of a hashrefs.
+L<L<HealthCheck::Diagnostic::WebRequest>> objects or subclasses can be directly provided instead of hashrefs.
 
-=head2 status_code
+=head1 SHARED ATTRIBUTES
 
-The expected HTTP response status code, or a string of status code conditions.
+These attributes, if supplied, are used to override the defaults for each hashref in the L<checks>. These will
+not apply to any L<HealthCheck::Diagnostic::WebRequest> objects in L<checks>.
 
-Conditions are comma-delimited, and can optionally have an operator prefix. Any
-condition without a prefix goes into an C<OR> set, while the prefixed ones go
-into an C<AND> set. As such, C<==> is not allowed as a prefix, because it's less
-confusing to not use a prefix here, and more than one condition while a C<==>
-condition exists would not make sense.
+See the documentation in L<HealthCheck::Diagnostic::WebRequest> for more details on them.
 
-Some examples:
+=over
 
-    !500              # Anything besides 500
-    200, 202          # 200 or 202
-    200, >=300, <400  # 200 or any 3xx code
-    <400, 405, !202   # Any code below 400 except 202, or 405,
-                      # ie: (<400 && !202) || 405
+=item status_code
 
-The default value for this is '200', which means that we expect a successful request.
+=item response_time_threshold
 
-=head2 response_time_threshold
+=item content_regex
 
-An optional number of seconds to compare the response time to. If it takes no more
-than this threshold to receive the response, the status is C<OK>. If the time exceeds
-this threshold, the status is C<WARNING>.
+=item no_follow_redirects
 
-=head2 content_regex
+=item ua
 
-The content regex to test for in the HTTP response.
-This is an optional field and is only checked if the status
-code check passes.
-This can either be a I<string> or a I<regex>.
+=item options
 
-=head2 no_follow_redirects
-
-Setting this variable prevents the healthcheck from following redirects.
-
-=head2 ua
-
-An optional attribute to override the default user agent. This must be of type L<LWP::UserAgent>.
-
-=head2 options
-
-See L<LWP::UserAgent> for available options. Takes a hash reference of key/value
-pairs in order to configure things like ssl_opts, timeout, etc.
-
-It is optional.
-
-By default provides a custom C<agent> string and a default C<timeout> of 7.
+=back
 
 =head1 DEPENDENCIES
 
