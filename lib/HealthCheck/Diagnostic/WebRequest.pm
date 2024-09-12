@@ -38,12 +38,23 @@ sub new {
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
-    die "No url, HTTP::Request specified!" unless ($params{url} ||
-        ($params{request} && blessed $params{request} &&
-            $params{request}->isa('HTTP::Request')));
-    die "The 'request' and 'url' parameters are mutually exclusive!"
+    croak "The 'request' and 'url' parameters are mutually exclusive!"
         if $params{url} && $params{request};
-    die "The 'ua' parameter must be of type LWP::UserAgent if provided" if $params{ua} && !(blessed $params{ua} && $params{ua}->isa('LWP::UserAgent'));
+    if ($params{url}) {
+        # Validation for url can be added here
+        $params{request} = HTTP::Request->new('GET', $params{url});
+    }
+    elsif ($params{request}) {
+        croak "request must be an HTTP::Request" unless blessed $params{request} && $params{request}->isa('HTTP::Request');
+    }
+    else{
+        croak "Either url or request is required";
+    }
+
+    if ($params{ua}) {
+        croak "The 'ua' parameter must be of type LWP::UserAgent if provided" unless blessed $params{ua} && $params{ua}->isa('LWP::UserAgent');
+        carp "no_follow_redirects does not do anything when 'ua' is provided" if $params{no_follow_redirects};
+    }
 
     # Process and serialize the status code checker
     $params{status_code} ||= '200';
@@ -52,7 +63,7 @@ sub new {
         # Strict validation of each part, since we're throwing these into an eval
         my ($op, $code) = $part =~ m{\A\s*(>=|>|<=|<|!=|!)?\s*(\d{3})\z};
 
-        die "The 'status_code' condition '$part' is not in the correct format!"
+        croak "The 'status_code' condition '$part' is not in the correct format!"
             unless defined $code;
         $op = '!=' if defined $op && $op eq '!';
 
@@ -62,7 +73,6 @@ sub new {
     push @or, '('.join(' && ', @and).')' if @and;  # merge @and as one big condition into @or
     $params{status_code_eval} = join ' || ', @or;
 
-    $params{request}        //= HTTP::Request->new('GET', $params{url});
     $params{options}        //= {};
     $params{options}{agent} //= LWP::UserAgent->_agent .
         " HealthCheck-Diagnostic-WebRequest/" . ( $class->VERSION || '0' );
@@ -118,8 +128,8 @@ sub check_status {
         $success = eval $self->{status_code_eval};
     }
 
-    # An unfortunate post-constructor die, but this would be a validation bug (ie: our fault)
-    die "Status code checker eval '".$self->{status_code_eval}."' failed: $@" if $@;
+    # An unfortunate post-constructor croak, but this would be a validation bug (ie: our fault)
+    croak "Status code checker eval '".$self->{status_code_eval}."' failed: $@" if $@;
 
     $status = $success ? 'OK' : 'CRITICAL';
 
