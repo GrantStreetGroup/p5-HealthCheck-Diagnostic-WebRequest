@@ -11,6 +11,43 @@ use Carp;
 use HealthCheck::Diagnostic::WebRequest;
 use Scalar::Util 'blessed';
 
+sub inflate_checks {
+    my ($checks, $shared_attrs) = @_;
+
+    my $type = ref $checks || '';
+    if ($type eq 'ARRAY') {
+        my @new_checks;
+        for my $subcheck (@{ $checks }) {
+            push @new_checks, inflate_checks($subcheck, $shared_attrs);
+        }
+        $checks = [ @new_checks ];
+    }
+    elsif ($type eq 'HASH') {
+        $checks = HealthCheck::Diagnostic::WebRequest->new(
+            %$shared_attrs,
+            %$checks,
+        )
+    }
+
+    return $checks;
+}
+
+sub verify_checks {
+    my ($checks) = @_;
+
+    return if blessed $checks && $checks->isa('HealthCheck::Diagnostic::WebRequest');
+
+    my $type = ref $checks || '';
+    if ($type eq 'ARRAY') {
+        for my $subcheck (@{ $checks }) {
+            verify_checks($subcheck);
+        }
+        return;
+    }
+
+    croak "Each registered check must be a HealthCheck::Diagnostic::WebRequest"
+}
+
 sub new {
     my ($class, @params) = @_;
 
@@ -36,22 +73,23 @@ sub new {
 
     carp("Invalid parameter: " . join(", ", @bad_params)) if @bad_params;
 
-    die "No checks specified!" unless $params{checks};
+    croak "No checks specified!" unless $params{checks};
 
     my %global_params = %params;
     delete $global_params{checks};
-    for my $check (@{ $params{checks} }) {
-        $check = HealthCheck::Diagnostic::WebRequest->new(
-            %global_params,
-            %$check,
-        ) if ref $check eq 'HASH';
-        die "Each check must be either a hashref or HealthCheck::Diagnostic::WebRequest" unless $check->isa('HealthCheck::Diagnostic::WebRequest');
-    }
+    $params{checks} = inflate_checks($params{checks}, \%global_params);
 
     return $class->SUPER::new(
         label => 'web_requests',
         %params,
     );
+}
+
+sub register {
+    my ($self, $checks) = @_;
+
+    verify_checks($checks);
+    return $self->SUPER::register($checks);
 }
 
 1;
