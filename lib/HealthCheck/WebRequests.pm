@@ -50,10 +50,10 @@ sub new {
 
 sub register {
     my ( $self, @checks ) = @_;
-    @checks = @{ $checks[0] } if @checks == 1 && ref $checks[0] eq 'ARRAY';
+    @checks = @{ $checks[0] } if @checks == 1 && ( ref $checks[0] || '' ) eq 'ARRAY';
 
     for my $check (@checks) {
-        if ( ref $check eq 'HASH' ) {
+        if ( ( ref $check || '' ) eq 'HASH' ) {
             $check = HealthCheck::Diagnostic::WebRequest->new( %{ $self->{default_params} }, %$check );
         }
 
