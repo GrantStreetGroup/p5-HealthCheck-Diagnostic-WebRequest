@@ -77,8 +77,10 @@ sub new {
     $params{options}{agent} //= LWP::UserAgent->_agent .
         " HealthCheck-Diagnostic-WebRequest/" . ( $class->VERSION || '0' );
     $params{options}{timeout} //= 7;    # Decided by committee
-    $params{ua} //= LWP::UserAgent->new( %{$params{options}} );
-    $params{ua}->requests_redirectable([]) if $params{'no_follow_redirects'};
+    unless ($params{ua}) {
+        $params{ua} //= LWP::UserAgent->new( %{$params{options}} );
+        $params{ua}->requests_redirectable([]) if $params{'no_follow_redirects'};
+    }
 
     return $class->SUPER::new(
         label => 'web_request',
