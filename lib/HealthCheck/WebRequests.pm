@@ -122,7 +122,7 @@ A L<HealthCheck> that groups multiple L<HealthCheck::Diagnostic::WebRequest>.
 
 An arrayref of hashrefs, where each hashref should contain valid arguments to instantiate a
 L<HealthCheck::Diagnostic::WebRequest> object. Alternatively,
-L<L<HealthCheck::Diagnostic::WebRequest>> objects or subclasses can be directly provided instead of hashrefs.
+L<HealthCheck::Diagnostic::WebRequest> objects or subclasses can be directly provided instead of hashrefs.
 
 =head1 SHARED ATTRIBUTES
 
