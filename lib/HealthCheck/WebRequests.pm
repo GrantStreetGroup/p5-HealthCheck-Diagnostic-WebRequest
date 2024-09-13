@@ -54,8 +54,7 @@ sub register {
 
     for my $check (@checks) {
         if ( ref $check eq 'HASH' ) {
-            $check = HealthCheck::Diagnostic::WebRequest->new( %$check,
-                %{ $self->{default_params} } );
+            $check = HealthCheck::Diagnostic::WebRequest->new( %{ $self->{default_params} }, %$check );
         }
 
         croak "Invalid check. Checks must either be a hashref or HealthCheck::Diagnostic::WebRequest"
