@@ -78,6 +78,7 @@ sub new {
         " HealthCheck-Diagnostic-WebRequest/" . ( $class->VERSION || '0' );
     $params{options}{timeout} //= 7;    # Decided by committee
     $params{ua} //= LWP::UserAgent->new( %{$params{options}} );
+    $params{ua}->requests_redirectable([]) if $params{'no_follow_redirects'};
 
     return $class->SUPER::new(
         label => 'web_request',
@@ -128,8 +129,8 @@ sub check_status {
         $success = eval $self->{status_code_eval};
     }
 
-    # An unfortunate post-constructor croak, but this would be a validation bug (ie: our fault)
-    croak "Status code checker eval '".$self->{status_code_eval}."' failed: $@" if $@;
+    # An unfortunate post-constructor die, but this would be a validation bug (ie: our fault)
+    die "Status code checker eval '".$self->{status_code_eval}."' failed: $@" if $@;
 
     $status = $success ? 'OK' : 'CRITICAL';
 
@@ -185,10 +186,7 @@ sub check_response_time {
 sub send_request {
     my ( $self ) = @_;
 
-    my $ua = $self->{ua};
-    $ua->requests_redirectable([]) if $self->{'no_follow_redirects'};
-
-    return $ua->request( $self->{request} );
+    return $self->{ua}->request( $self->{request} );
 }
 
 1;
