@@ -4,7 +4,7 @@ HealthCheck::Diagnostic::WebRequest - Make HTTP/HTTPS requests to web servers to
 
 # VERSION
 
-version v1.4.2
+version v1.4.3
 
 # SYNOPSIS
 
@@ -19,6 +19,14 @@ version v1.4.2
     );
     my $result = $diagnostic->check;
     print $result->{status}; # OK
+
+    # Look for a 200 status code and verify request takes no more than 10 seconds.
+    my $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
+        url => 'https://foo.example',
+        response_time_threshold => 10,
+    );
+    my $result = $diagnostic->check;
+    print $result->{status}; # OK if no more than 10, WARNING if more than 10
 
     # Look for a 401 status code and fail.
     $diagnostic = HealthCheck::Diagnostic::WebRequest->new(
@@ -123,6 +131,12 @@ Some examples:
 
 The default value for this is '200', which means that we expect a successful request.
 
+## response\_time\_threshold
+
+An optional number of seconds to compare the response time to. If it takes no more
+than this threshold to receive the response or if the threshold is not provided,
+the status is `OK`. If the time exceeds this threshold, the status is `WARNING`.
+
 ## content\_regex
 
 The content regex to test for in the HTTP response.
@@ -134,6 +148,10 @@ This can either be a _string_ or a _regex_.
 
 Setting this variable prevents the healthcheck from following redirects.
 
+## ua
+
+An optional attribute to override the default user agent. This must be of type [LWP::UserAgent](https://metacpan.org/pod/LWP%3A%3AUserAgent).
+
 ## options
 
 See [LWP::UserAgent](https://metacpan.org/pod/LWP%3A%3AUserAgent) for available options. Takes a hash reference of key/value
@@ -142,6 +160,16 @@ pairs in order to configure things like ssl\_opts, timeout, etc.
 It is optional.
 
 By default provides a custom `agent` string and a default `timeout` of 7.
+
+# METHODS
+
+## send\_request
+
+    my $response = $self->send_request;
+
+This is the method called internally to receive a response for the healthcheck. Defaults to calling
+the `request` method on the user agent and provided `request` attribute, but this can be overridden in
+a subclass.
 
 # DEPENDENCIES
 
@@ -158,7 +186,7 @@ Grant Street Group <developers@grantstreet.com>
 
 # COPYRIGHT AND LICENSE
 
-This software is Copyright (c) 2018 - 2021 by Grant Street Group.
+This software is Copyright (c) 2018 - 2024 by Grant Street Group.
 
 This is free software, licensed under:
 
