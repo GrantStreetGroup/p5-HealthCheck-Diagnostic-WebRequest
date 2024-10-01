@@ -107,9 +107,9 @@ sub run {
     }
 
     my @results;
-    push @results, $self->_check_status( $response );
-    push @results, $self->_check_response_time( $elapsed_time );
-    push @results, $self->_check_content( $response )
+    push @results, $self->check_status( $response );
+    push @results, $self->check_response_time( $elapsed_time );
+    push @results, $self->check_content( $response )
         if $results[0]->{status} eq 'OK';
 
     my $info = join '; ', grep { length } map { $_->{info} } @results;
@@ -117,7 +117,7 @@ sub run {
     return { info => $info, results => \@results };
 }
 
-sub _check_status {
+sub check_status {
     my ( $self, $response ) = @_;
     my $status;
 
@@ -156,7 +156,7 @@ sub _check_status {
     return { status => $status, info => $info };
 }
 
-sub _check_content {
+sub check_content {
     my ( $self, $response ) = @_;
 
     return unless $self->{content_regex};
@@ -172,7 +172,7 @@ sub _check_content {
     };
 }
 
-sub _check_response_time {
+sub check_response_time {
     my ( $self, $elapsed_time ) = @_;
 
     my $response_time_threshold = $self->{response_time_threshold};
