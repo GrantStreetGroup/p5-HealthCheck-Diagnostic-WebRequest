@@ -4,7 +4,7 @@ HealthCheck::Diagnostic::WebRequest - Make HTTP/HTTPS requests to web servers to
 
 # VERSION
 
-version v1.4.3
+version v1.4.4
 
 # SYNOPSIS
 
@@ -162,6 +162,37 @@ It is optional.
 By default provides a custom `agent` string and a default `timeout` of 7.
 
 # METHODS
+
+## Check Methods
+
+Individual HealthCheck results are added in this order as the return value from these methods:
+
+### check\_status
+
+    my $result = $self->check_status( $response );
+
+This method takes in a [HTTP::Response](https://metacpan.org/pod/HTTP%3A%3AResponse) object and returns a [healthcheck result](https://grantstreetgroup.github.io/HealthCheck.html#results)
+with a `status` key and an `info` key. The status is `CRITICAL` if a successful HTTP status code was not received,
+if the `Client-Warning` HTTP response header is 'Internal response', or if the `X-Squid-Error` HTTP response header is set.
+Otherwise, it is `OK`.
+
+### check\_response\_time
+
+    my $result = $self->check_response_time( $elapsed_time );
+
+This method takes in a number of seconds and returns a [healthcheck result](https://grantstreetgroup.github.io/HealthCheck.html#results)
+with a `status` key and an `info` key. The status is `WARNING` if the response time exceeds the `response_time_threshold`.
+Otherwise, it is `OK`.
+
+### check\_content
+
+    my $response = $self->check_content( $response );
+
+This method takes in a [HTTP::Response](https://metacpan.org/pod/HTTP%3A%3AResponse) object and returns a [healthcheck result](https://grantstreetgroup.github.io/HealthCheck.html#results)
+with a `status` key and an `info` key. The status is `CRITICAL` if the content of the response does not match the `content_regex` attribute.
+Otherwise, it is `OK`.
+
+Note, this is not called if the result of ["check\_status"](#check_status) is not `OK`.
 
 ## send\_request
 
